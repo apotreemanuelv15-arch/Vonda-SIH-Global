@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Vendre - {{ medicament.nom }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background-color: #f4f4f4; }
+        .card { background: white; padding: 20px; border-radius: 8px; max-width: 400px; margin: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .info { color: #7f8c8d; margin-bottom: 20px; }
+        .btn-vendre { background: #e67e22; color: white; padding: 10px; border: none; width: 100%; cursor: pointer; border-radius: 4px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Vendre : {{ medicament.nom }}</h1>
+        <p class="info">Prix unitaire : {{ medicament.prix }} USD <br> En stock : {{ medicament.quantite_stock }}</p>
+        
+        <form method="POST">
+            {% csrf_token %}
+            <label>Quantité à vendre :</label>
+            <input type="number" name="quantite" min="1" max="{{ medicament.quantite_stock }}" required>
+            <button type="submit" class="btn-vendre">Valider la vente</button>
+        </form>
+        <br>
+        <a href="{% url 'liste_medicaments' %}" style="color: #3498db; text-decoration: none;">Annuler</a>
+    </div>
+</body>
+</html>
