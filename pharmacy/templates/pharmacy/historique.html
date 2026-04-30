@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Historique des Ventes - Vonda SIH</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background-color: #f0f2f5; }
+        .container { max-width: 900px; margin: 40px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .stats-box { background: #2c3e50; color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        .total-amount { font-size: 32px; font-weight: bold; color: #2ecc71; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background: #f8f9fa; }
+        .btn-back { display: inline-block; margin-bottom: 20px; color: #3498db; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{% url 'liste_medicaments' %}" class="btn-back">← Retour à l'inventaire</a>
+        
+        <div class="stats-box">
+            <div>CHIFFRE D'AFFAIRES TOTAL</div>
+            <div class="total-amount">{{ total_revenus }} USD</div>
+        </div>
+
+        <h1>Rapport des Ventes</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Médicament</th>
+                    <th>Quantité</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vente in ventes %}
+                <tr>
+                    <td>{{ vente.date_vente|date:"d/m/Y H:i" }}</td>
+                    <td>{{ vente.medicament.nom }}</td>
+                    <td>{{ vente.quantite_vendue }}</td>
+                    <td>{{ vente.prix_total }} USD</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" style="text-align:center;">Aucune vente enregistrée.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
