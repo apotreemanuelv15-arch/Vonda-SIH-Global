@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Enregistrer un Patient - Vonda SIH</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 40px; background-color: #f0f2f5; }
+        .form-container { background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; margin-bottom: 25px; }
+        .btn-save { background: #27ae60; color: white; padding: 12px; border: none; width: 100%; cursor: pointer; border-radius: 4px; font-size: 16px; font-weight: bold; }
+        .btn-save:hover { background: #219150; }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #7f8c8d; text-decoration: none; }
+        /* Style des champs Django */
+        input, textarea, select { width: 100%; padding: 10px; margin: 10px 0 20px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Fiche Nouveau Patient</h1>
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn-save">Enregistrer le Patient</button>
+        </form>
+        <a href="{% url 'liste_patients' %}" class="back-link">Annuler et retourner à la liste</a>
+    </div>
+</body>
+</html>
