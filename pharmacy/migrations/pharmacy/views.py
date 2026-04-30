@@ -1,27 +1,47 @@
-from django.shortcuts import render, redirect
-from .models import Medicament
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Medicament, Vente
 from .forms import MedicamentForm
 
-# 1. Vue pour afficher la liste des médicaments
+# 1. Liste des médicaments
 def liste_medicaments(request):
-    # On récupère tous les médicaments enregistrés
     tous_les_medicaments = Medicament.objects.all()
-    
-    # On les envoie vers la page 'liste.html'
     return render(request, 'pharmacy/liste.html', {'medicaments': tous_les_medicaments})
 
-# 2. Vue pour ajouter un nouveau médicament
+# 2. Ajouter un médicament
 def ajouter_medicament(request):
-    # Si l'utilisateur a cliqué sur le bouton "Enregistrer" (méthode POST)
     if request.method == "POST":
         form = MedicamentForm(request.POST)
         if form.is_valid():
-            form.save() # On enregistre dans la base de données
-            return redirect('liste_medicaments') # On revient à la liste
-            
-    # Si l'utilisateur arrive juste sur la page (méthode GET)
+            form.save()
+            return redirect('liste_medicaments')
     else:
         form = MedicamentForm()
-        
-    # On affiche le formulaire sur la page 'ajouter.html'
     return render(request, 'pharmacy/ajouter.html', {'form': form})
+
+# 3. Effectuer une vente (NOUVEAU)
+def effectuer_vente(request, pk):
+    # On récupère le médicament concerné par son ID (pk)
+    medicament = get_object_or_404(Medicament, pk=pk)
+    
+    if request.method == "POST":
+        quantite = int(request.POST.get('quantite'))
+        
+        # Vérification si le stock est suffisant
+        if quantite <= medicament.quantite_stock:
+            # Calcul du prix total
+            total = medicament.prix * quantite
+            
+            # Création de la vente
+            Vente.objects.create(
+                medicament=medicament,
+                quantite_vendue=quantite,
+                prix_total=total
+            )
+            
+            # MISE À JOUR DU STOCK (L'intelligence du système)
+            medicament.quantite_stock -= quantite
+            medicament.save()
+            
+            return redirect('liste_medicaments')
+            
+    return render(request, 'pharmacy/vente.html', {'medicament': medicament})
