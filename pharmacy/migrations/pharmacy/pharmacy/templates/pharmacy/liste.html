@@ -2,40 +2,73 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Pharmacie - Vonda SIH</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventaire Pharmacie - Vonda SIH</title>
     <style>
-        body { font-family: sans-serif; margin: 40px; background-color: #f4f4f4; }
-        h1 { color: #2c3e50; }
-        table { width: 100%; border-collapse: collapse; background: white; }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-        th { background-color: #27ae60; color: white; }
+        /* Design Professionnel */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #f0f2f5; color: #333; }
+        .container { max-width: 1000px; margin: 40px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        
+        /* En-tête */
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
+        h1 { margin: 0; color: #2c3e50; font-size: 24px; }
+        
+        /* Bouton Ajouter */
+        .btn-add { background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: background 0.3s; }
+        .btn-add:hover { background-color: #2980b9; }
+
+        /* Tableau */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; color: #7f8c8d; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+        tr:hover { background-color: #f9f9f9; }
+
+        /* Badges de stock */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .instock { background-color: #d4edda; color: #155724; }
+        .lowstock { background-color: #fff3cd; color: #856404; }
     </style>
 </head>
 <body>
-    <h1>Gestion de la Pharmacie</h1>
+
+<div class="container">
+    <div class="header">
+        <h1>Inventaire de la Pharmacie</h1>
+        <!-- Le lien vers le formulaire d'ajout -->
+        <a href="{% url 'ajouter_medicament' %}" class="btn-add">+ Nouveau Médicament</a>
+    </div>
+
     <table>
         <thead>
             <tr>
-                <th>Nom</th>
-                <th>Prix</th>
+                <th>Médicament</th>
+                <th>Prix Unit.</th>
                 <th>Stock</th>
-                <th>Expiration</th>
+                <th>Date d'expiration</th>
             </tr>
         </thead>
         <tbody>
             {% for med in medicaments %}
             <tr>
-                <td>{{ med.nom }}</td>
+                <td><strong>{{ med.nom }}</strong><br><small style="color: #95a5a6;">{{ med.description|truncatechars:50 }}</small></td>
                 <td>{{ med.prix }} USD</td>
-                <td>{{ med.quantite_stock }}</td>
+                <td>
+                    <span class="badge {% if med.quantite_stock < 10 %}lowstock{% else %}instock{% endif %}">
+                        {{ med.quantite_stock }} unités
+                    </span>
+                </td>
                 <td>{{ med.date_expiration }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="4">Aucun médicament enregistré pour le moment.</td>
+                <td colspan="4" style="text-align: center; padding: 40px; color: #95a5a6;">
+                    Aucun médicament en stock. Cliquez sur "Nouveau Médicament" pour commencer.
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+</div>
+
 </body>
 </html>
