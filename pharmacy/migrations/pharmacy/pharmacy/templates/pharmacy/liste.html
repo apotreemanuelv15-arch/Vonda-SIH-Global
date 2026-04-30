@@ -7,7 +7,7 @@
     <style>
         /* Design Professionnel */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #f0f2f5; color: #333; }
-        .container { max-width: 1000px; margin: 40px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .container { max-width: 1100px; margin: 40px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         
         /* En-tête */
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
@@ -20,21 +20,24 @@
         /* Tableau */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f8f9fa; color: #7f8c8d; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+        th { background-color: #f8f9fa; color: #7f8c8d; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }
         tr:hover { background-color: #f9f9f9; }
 
         /* Badges de stock */
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         .instock { background-color: #d4edda; color: #155724; }
         .lowstock { background-color: #fff3cd; color: #856404; }
+
+        /* Bouton Vendre */
+        .btn-sell { color: #e67e22; text-decoration: none; font-weight: bold; border: 1px solid #e67e22; padding: 5px 10px; border-radius: 4px; font-size: 13px; transition: 0.3s; }
+        .btn-sell:hover { background-color: #e67e22; color: white; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>Inventaire de la Pharmacie</h1>
-        <!-- Le lien vers le formulaire d'ajout -->
+        <h1>Gestion des Stocks & Ventes</h1>
         <a href="{% url 'ajouter_medicament' %}" class="btn-add">+ Nouveau Médicament</a>
     </div>
 
@@ -43,14 +46,15 @@
             <tr>
                 <th>Médicament</th>
                 <th>Prix Unit.</th>
-                <th>Stock</th>
-                <th>Date d'expiration</th>
+                <th>Stock Actuel</th>
+                <th>Expiration</th>
+                <th style="text-align: center;">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for med in medicaments %}
             <tr>
-                <td><strong>{{ med.nom }}</strong><br><small style="color: #95a5a6;">{{ med.description|truncatechars:50 }}</small></td>
+                <td><strong>{{ med.nom }}</strong><br><small style="color: #95a5a6;">{{ med.description|truncatechars:40 }}</small></td>
                 <td>{{ med.prix }} USD</td>
                 <td>
                     <span class="badge {% if med.quantite_stock < 10 %}lowstock{% else %}instock{% endif %}">
@@ -58,11 +62,15 @@
                     </span>
                 </td>
                 <td>{{ med.date_expiration }}</td>
+                <td style="text-align: center;">
+                    <!-- Le nouveau bouton de vente lié à l'ID du médicament -->
+                    <a href="{% url 'effectuer_vente' med.pk %}" class="btn-sell">🛒 Vendre</a>
+                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="4" style="text-align: center; padding: 40px; color: #95a5a6;">
-                    Aucun médicament en stock. Cliquez sur "Nouveau Médicament" pour commencer.
+                <td colspan="5" style="text-align: center; padding: 40px; color: #95a5a6;">
+                    L'inventaire est vide.
                 </td>
             </tr>
             {% endfor %}
