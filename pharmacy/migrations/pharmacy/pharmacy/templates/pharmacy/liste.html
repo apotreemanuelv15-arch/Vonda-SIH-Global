@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Pharmacie - Vonda SIH</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background-color: #f4f4f4; }
+        h1 { color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #27ae60; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Gestion de la Pharmacie</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Prix</th>
+                <th>Stock</th>
+                <th>Expiration</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for med in medicaments %}
+            <tr>
+                <td>{{ med.nom }}</td>
+                <td>{{ med.prix }} USD</td>
+                <td>{{ med.quantite_stock }}</td>
+                <td>{{ med.date_expiration }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">Aucun médicament enregistré pour le moment.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
