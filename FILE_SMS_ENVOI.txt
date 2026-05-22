@@ -1,0 +1,3 @@
+--- PILE D'ENVOI SMS DU 2026-05-03 (Pour les RDV du 2026-05-04) ---
+
+DEST: +244900000000 | MSG: VONDA SIH: Mme Marie Kalunga, rappel de votre consultation prenatale demain. Portez-vous bien. | UNIT_PRICE: 0.50$

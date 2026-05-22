@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>📦 Gestion des Stocks - Vonda SIH</h1>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Médicament</th>
+                <th>Prix Unit.</th>
+                <th>Stock</th>
+                <th>Aide IA (Posologie)</th>
+                <th>Statut</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for medicament in medicaments %}
+            <tr>
+                <td><strong>{{ medicament.nom }}</strong></td>
+                <td>{{ medicament.prix_unitaire }} $</td>
+                <td>{{ medicament.quantite_stock }}</td>
+                <td>
+                    {% if medicament.posologie_standard_ia %}
+                        <span class="ia-badge">IA</span> <small>{{ medicament.posologie_standard_ia|truncatewords:8 }}</small>
+                    {% else %}
+                        <small style="color: #ccc;">Non configuré</small>
+                    {% endif %}
+                </td>
+                <td class="{% if medicament.quantite_stock <= 5 %}alerte{% else %}OK{% endif %}">
+                    {% if medicament.quantite_stock <= 5 %}
+                        ⚠️ Réapprovisionner
+                    {% else %}
+                        ✅ En Stock
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center;">Aucun médicament en stock.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

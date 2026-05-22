@@ -1,0 +1,11 @@
+========== RAPPORT DE GESTION Vonda SIH ==========
+Chiffre d'Affaires Total : 1606 $
+--------------------------------------------------
+
+--- ALERTES STOCK ---
+⚠️ ATTENTION : Amoxicilline (Reste: 8 | Seuil: 10)
+
+--- DERNIÈRES VENTES ---
+- 06:16 : Amoxicilline (240 pcs) | 1320.00 $
+- 05:55 : Amoxicilline (50 pcs) | 275.00 $
+- 20:01 : Amoxicilline (2 pcs) | 11.00 $

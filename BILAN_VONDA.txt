@@ -1,0 +1,16 @@
+======================================================
+           VONDA SIH - RAPPORT DU 2026-05-03
+======================================================
+
+💰 REVENUS : 0 $
+🏥 CLINIQUE : 1 Patients | 0 Guéris | 0 Transferts | 0 Décès
+------------------------------------------------------
+
+--- DÉTAILS DES ACTES ---
+[08:35] Marie Kalunga (Consultation Prénatale)
+      Diagnostic : Evolution normale
+      Statut : En traitement
+      NOTES : Rien à signaler, bon état général.
+      ----------
+
+--- ALERTES STOCK ---
