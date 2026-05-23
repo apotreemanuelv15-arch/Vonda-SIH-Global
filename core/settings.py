@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import dj_database_url  # Importation essentielle pour Vercel Postgres
 
 # Chemin de base du projet
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -51,17 +52,31 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Base de données
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+
+# --- CONFIGURATION DYNAMIQUE DE LA BASE DE DONNÉES ---
+# Détecte automatiquement si le système tourne sur le Cloud ou sur votre clé USB
+if 'VERCEL' in os.environ:
+    # Moteur de production en ligne (Vercel + Neon Postgres)
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('POSTGRES_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
     }
-}
+else:
+    # Moteur de développement local (Votre clé Linux Mint)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
 
 # Internationalisation
 LANGUAGE_CODE = 'fr-fr'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Luanda'  # Aligné sur votre fuseau horaire opérationnel
 USE_I18N = True
 USE_TZ = True
 
