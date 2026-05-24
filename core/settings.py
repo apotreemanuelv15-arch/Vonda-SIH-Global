@@ -6,9 +6,10 @@ import dj_database_url  # Importation essentielle pour Vercel Postgres
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Sécurité (En développement uniquement)
-SECRET_KEY = 'django-insecure-vonda-sih-key-pour-developpement'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-vonda-sih-key-pour-developpement')
 DEBUG = True
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*', '.vercel.app', 'vonda-sih-global.vercel.app']
+CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app', 'https://vonda-sih-global.vercel.app']
 
 # Applications installées
 INSTALLED_APPS = [
@@ -22,8 +23,10 @@ INSTALLED_APPS = [
     'billing',   # Votre application de facturation
 ]
 
+# MIDDLEWARE (Ordre ajusté avec WhiteNoise juste après la sécurité)
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # <--- Ajout crucial pour le CSS en ligne
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -53,8 +56,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
-# --- CONFIGURATION DYNAMIQUE DE LA BASE DE DONNÉES ---
-# Détecte automatiquement si le système tourne sur le Cloud ou sur votre clé USB
+# --- CONFIGURATION DYNAMIQUE DE LA BASE DE DONNÉES (Préservée !) ---
 if 'VERCEL' in os.environ:
     # Moteur de production en ligne (Vercel + Neon Postgres)
     DATABASES = {
@@ -80,10 +82,10 @@ TIME_ZONE = 'Africa/Luanda'  # Aligné sur votre fuseau horaire opérationnel
 USE_I18N = True
 USE_TZ = True
 
-# --- CONFIGURATION DES FICHIERS STATIQUES (Correction Logo 404) ---
-STATIC_URL = 'static/'
+# --- CONFIGURATION DES FICHIERS STATIQUES (Optimisée pour la production) ---
+STATIC_URL = '/static/'
 
-# Dossiers où Django va chercher les images, CSS et JS
+# Dossiers où Django va chercher les images, CSS et JS en développement
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
@@ -91,5 +93,17 @@ STATICFILES_DIRS = [
 # Dossier de collecte pour la production
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+# Moteur de stockage WhiteNoise pour compresser et servir le design sur le Cloud
+if 'VERCEL' in os.environ:
+    STORAGES = {
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+
 # Configuration par défaut des IDs
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Redirections après connexion
+LOGIN_REDIRECT_URL = 'inventaire'
+LOGOUT_REDIRECT_URL = 'login'
