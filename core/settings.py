@@ -107,3 +107,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Redirections après connexion
 LOGIN_REDIRECT_URL = 'inventaire'
 LOGOUT_REDIRECT_URL = 'login'
+# Relance forcée du système visuel Vercel 2026
