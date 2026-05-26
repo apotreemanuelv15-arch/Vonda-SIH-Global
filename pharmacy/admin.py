@@ -61,7 +61,7 @@ class MedicamentAdmin(admin.ModelAdmin):
     list_display = ('nom', 'quantite_stock', 'prix_unitaire')
     search_fields = ('nom',)
     fieldsets = (
-        ('Stock', {'fields': ('etablissement', 'nom', 'stock', 'quantite_stock', 'prix_unitaire')}),
+        ('Stock', {'fields': ('etablissement', 'nom', 'quantite_stock', 'prix_unitaire')}),
         ('Aide IA (Anti-Automédication)', {
             'fields': ('posologie_standard_ia', 'contre_indications'),
             'description': "Ces informations sont des guides. Seul le médecin peut valider la prescription finale."
