@@ -58,21 +58,36 @@ class ChirurgieAssisteeAdmin(admin.ModelAdmin):
 
 @admin.register(Medicament)
 class MedicamentAdmin(admin.ModelAdmin):
-    list_display = ('nom', 'quantite_stock', 'prix_unitaire')
-    search_fields = ('nom',)
+    # 1. Les colonnes visibles dans le tableau de la liste des médicaments
+    list_display = ('nom', 'pays_origine', 'quantite_stock', 'stock_en_cartons', 'prix_unitaire')
+    list_filter = ('conditionnement_achat', 'pays_origine', 'etablissement')
+    search_fields = ('nom', 'pays_origine', 'numero_lot_import')
+    
+    # 2. L'organisation des champs à l'intérieur du formulaire d'ajout/modification
     fieldsets = (
-        ('Stock', {'fields': ('etablissement', 'nom', 'quantite_stock', 'prix_unitaire')}),
+        ('Informations Générales', {
+            'fields': ('etablissement', 'nom', 'pays_origine')
+        }),
+        ('Logistique de Gros & Import-Export', {
+            'fields': ('conditionnement_achat', 'unites_par_carton', 'numero_lot_import', 'cout_fret_douane'),
+            'description': "Configurez ici les emballages pour les dépôts de gros et le suivi douanier."
+        }),
+        ('Gestion des Prix et Stocks', {
+            'fields': ('quantite_stock', 'prix_unitaire', 'prix_grossiste_carton'),
+            'description': "Le stock global doit toujours être saisi en unités de détail."
+        }),
         ('Aide IA (Anti-Automédication)', {
             'fields': ('posologie_standard_ia', 'contre_indications'),
-            'description': "Ces informations sont des guides. Seul le médecin peut valider la prescription finale."
+            'description': "Ces informations sont des guides générés. Seul le médecin valide la prescription finale."
         }),
     )
 
 @admin.register(Vente)
 class VenteAdmin(admin.ModelAdmin):
-    list_display = ('code_facture_unique', 'medicament', 'quantite_vendue', 'prix_total', 'date_vente')
+    list_display = ('code_facture_unique', 'medicament', 'type_vente', 'quantite_vendue', 'prix_total', 'date_vente')
     readonly_fields = ('prix_total', 'code_facture_unique') # Sécurité : calculé par le système, non modifiable à la main
-    list_filter = ('date_vente',)
+    list_filter = ('type_vente', 'date_vente')
+    search_fields = ('code_facture_unique', 'medicament__nom')
     date_hierarchy = 'date_vente'
 
 @admin.register(GuideModule)
