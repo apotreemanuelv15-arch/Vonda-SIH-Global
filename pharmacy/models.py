@@ -1,8 +1,10 @@
 import uuid
+import os
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from google import genai  # Importation du nouveau moteur IA de Google
 
 # --- 1. STRUCTURE ADMINISTRATIVE ---
 class Etablissement(models.Model):
@@ -52,9 +54,8 @@ class ChirurgieAssistee(models.Model):
     def __str__(self):
         return f"Chirurgie IA : {self.patient.nom_complet} ({self.type_intervention})"
 
-# --- 3. PHARMACIE ET LUTTE CONTRE L'AUTOMÉDICATION (MIS À JOUR GROSSISTE) ---
+# --- 3. PHARMACIE ET LUTTE CONTRE L'AUTOMÉDICATION (AUTOMATISATION IA ACTIVE) ---
 class Medicament(models.Model):
-    # --- CHOIX DE CONDITIONNEMENT GROSSISTE ---
     UNITE = 'UNITE'
     CARTON = 'CARTON'
     PALETTE = 'PALETTE'
@@ -68,33 +69,56 @@ class Medicament(models.Model):
     etablissement = models.ForeignKey(Etablissement, on_delete=models.CASCADE)
     nom = models.CharField(max_length=100)
     
-    # --- GESTION DU STOCK HYBRIDE (Détail vs Gros) ---
     quantite_stock = models.IntegerField(default=0, help_text="Quantité totale disponible en unités de détail")
     conditionnement_achat = models.CharField(max_length=20, choices=TYPE_EMBALLAGE_CHOICES, default=UNITE)
     unites_par_carton = models.IntegerField(default=1, help_text="Combien d'unités individuelles contient un carton d'importation")
 
-    # --- TRAÇABILITÉ IMPORT-EXPORT ---
     pays_origine = models.CharField(max_length=100, default="International", help_text="Pays de fabrication (Inde, France, Chine, etc.)")
     numero_lot_import = models.CharField(max_length=100, blank=True, null=True, help_text="Numéro de lot douanier / international")
     cout_fret_douane = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Frais de transport et douane appliqués à ce lot")
 
-    # --- TARIFICATION DÉGRESSIVE ---
     prix_unitaire = models.DecimalField(max_digits=10, decimal_places=2, help_text="Prix de vente standard à l'unité")
     prix_grossiste_carton = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Prix spécial par carton pour les dépôts intégrés")
 
-    # --- AIDE IA ---
-    posologie_standard_ia = models.TextField(blank=True, help_text="Guide de posologie suggéré par l'IA")
-    contre_indications = models.TextField(blank=True)
+    # Champs gérés automatiquement par l'IA
+    posologie_standard_ia = models.TextField(blank=True, help_text="Généré automatiquement par l'IA si laissé vide")
+    contre_indications = models.TextField(blank=True, help_text="Généré automatiquement par l'IA si laissé vide")
 
     def __str__(self):
         return f"{self.nom} ({self.pays_origine}) - {self.etablissement.nom} (Stock: {self.quantite_stock} u)"
 
     @property
     def stock_en_cartons(self):
-        """Calcule instantanément combien de cartons complets sont disponibles au dépôt"""
         if self.unites_par_carton > 1:
             return self.quantite_stock // self.unites_par_carton
         return 0
+
+    def save(self, *args, **kwargs):
+        # Déclenchement du Cerveau IA si les champs sont vides et qu'une clé API est disponible
+        api_key_gemini = os.environ.get("GEMINI_API_KEY")
+        
+        if api_key_gemini and (not self.posologie_standard_ia or not self.contre_indications):
+            try:
+                # Initialisation du client avec le nouveau SDK google-genai
+                client = genai.Client(api_key=api_key_gemini)
+                
+                if not self.posologie_standard_ia:
+                    prompt_poso = f"Donne uniquement la posologie médicale standard, très concise (max 2 phrases), pour la molécule ou le médicament suivant : {self.nom}. Ajoute une formule stricte contre l'automédication à la fin."
+                    response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt_poso)
+                    self.posologie_standard_ia = response.text.strip()
+                    
+                if not self.contre_indications:
+                    prompt_contra = f"Donne uniquement la liste des contre-indications majeures (les plus dangereuses), sous forme de puces concises, pour : {self.nom}."
+                    response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt_contra)
+                    self.contre_indications = response.text.strip()
+            except Exception as e:
+                # Sécurité : Si l'API échoue (réseau, quota), le système enregistre sans bloquer la pharmacie
+                if not self.posologie_standard_ia:
+                    self.posologie_standard_ia = "Indisponible temporairement (Erreur IA)."
+                if not self.contre_indications:
+                    self.contre_indications = "Veuillez consulter la notice d'origine."
+
+        super().save(*args, **kwargs)
 
 class Prescription(models.Model):
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
@@ -113,7 +137,6 @@ class Vente(models.Model):
     code_facture_unique = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
     def clean(self):
-        # Calculer le besoin réel en unités de détail pour la validation du stock
         unites_demandees = self.quantite_vendue
         if self.type_vente == 'GROS':
             unites_demandees = self.quantite_vendue * self.medicament.unites_par_carton
@@ -124,31 +147,25 @@ class Vente(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         
-        # 1. Calcul automatique du prix selon le type de contrat (Détail vs Gros)
         if self.type_vente == 'GROS' and self.medicament.prix_grossiste_carton:
             self.prix_total = self.medicament.prix_grossiste_carton * self.quantite_vendue
             unites_a_deduire = self.quantite_vendue * self.medicament.unites_par_carton
         else:
-            # Si Vente au détail ou si le prix de gros n'est pas configuré, calcul standard à l'unité
             if self.type_vente == 'GROS':
-                # Sécurité : calcul au tarif unitaire si prix de gros oublié
                 self.prix_total = (self.medicament.prix_unitaire * self.medicament.unites_par_carton) * self.quantite_vendue
                 unites_a_deduire = self.quantite_vendue * self.medicament.unites_par_carton
             else:
                 self.prix_total = self.medicament.prix_unitaire * self.quantite_vendue
                 unites_a_deduire = self.quantite_vendue
         
-        # 2. Déduction automatique du stock global en unités de détail
         self.medicament.quantite_stock -= unites_a_deduire
         self.medicament.save()
         
-        # 3. Sauvegarde de la vente en base de données
         is_new = self.pk is None
         super().save(*args, **kwargs)
         
-        # 4. GÉNÉRATION DE LA TRANSACTION BANCAIRE (Redevance Vonda 5%)
         if is_new:
-            taux_redevance = 0.05  # 5% de redevance technologique
+            taux_redevance = 0.05
             montant_redevance = float(self.prix_total) * taux_redevance
             
             TransactionBancaire.objects.create(
