@@ -6,23 +6,24 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; color: #333; margin: 40px; }
         .container { max-width: 600px; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin: auto; }
-        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 0; }
         .form-group { margin-bottom: 20px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
-        select, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn { background-color: #27ae60; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        .btn { background-color: #27ae60; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; transition: background 0.2s; }
         .btn:hover { background-color: #219653; }
         .messages { padding: 0; list-style: none; }
         .messages li { padding: 12px; margin-bottom: 15px; border-radius: 4px; font-weight: bold; }
         .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .back-link { display: block; text-align: center; margin-top: 20px; color: #3498db; text-decoration: none; }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #3498db; text-decoration: none; font-weight: 500; }
+        .back-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📦 Centre de Distribution de Gros - Vonda SIH</h2>
+    <h2>📦 Distribution de Gros - Vonda SIH</h2>
     
     {% if messages %}
         <ul class="messages">
@@ -47,24 +48,23 @@
         <div class="form-group">
             <label for="medicament">Sélectionner le Médicament :</label>
             <select name="medicament" id="medicament" required>
-                {% border_pagination med in medicaments %}
                 {% for med in medicaments %}
                     <option value="{{ med.id }}">
-                        {{ med.nom }} (En Stock : {{ med.stock_en_cartons }} cartons / {{ med.quantite_stock }} u)
+                        {{ med.nom }} (Dispo : {{ med.stock_en_cartons }} cartons / {{ med.quantite_stock }} u)
                     </option>
                 {% endfor %}
             </select>
         </div>
 
         <div class="form-group">
-            <label for="quantite_cartons">Nombre de Cartons à Vendre :</label>
+            <label for="quantite_cartons">Nombre de Cartons à Déstocker :</label>
             <input type="number" name="quantite_cartons" id="quantite_cartons" min="1" value="1" required>
         </div>
 
-        <button type="submit" class="btn">🚀 Valider la Vente & Facturer</button>
+        <button type="submit" class="btn">🚀 Enregistrer la Vente & Déduire le Stock</button>
     </form>
 
-    <a href="/pharmacy/inventaire/" class="back-link">⬅️ Retour à l'Inventaire</a>
+    <a href="/pharmacy/inventaire/" class="back-link">⬅️ Annuler et Retourner à l'Inventaire</a>
 </div>
 
 </body>
