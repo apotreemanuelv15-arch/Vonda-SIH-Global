@@ -1,44 +1,80 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Vonda SIH - Inventaire Global</title>
+    <link rel="icon" href="data:,">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3498db; padding-bottom: 15px; margin-bottom: 25px; }
+        h2 { color: #2c3e50; margin: 0; }
+        .nav-buttons { display: flex; gap: 10px; }
+        .btn { padding: 10px 15px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; color: white; }
+        .btn-gros { background-color: #2980b9; }
+        .btn-detail { background-color: #27ae60; }
+        
+        /* Styles de la table d'inventaire */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #34495e; color: white; }
+        tr:hover { background-color: #f9f9f9; }
+        
+        /* Badges d'alerte de stock */
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; display: inline-block; }
+        .badge-danger { background-color: #f2d7d5; color: #c0392b; border: 1px solid #e74c3c; }
+        .badge-warning { background-color: #fef9e7; color: #d35400; border: 1px solid #f39c12; }
+        .badge-success { background-color: #e8f8f5; color: #117864; border: 1px solid #1abc9c; }
+    </style>
+</head>
+<body>
 
-{% block content %}
-    <h1>📦 Gestion des Stocks - Vonda SIH</h1>
-    
+<div class="container">
+    <div class="header-bar">
+        <h2>📦 Registre d'Inventaire & Alertes Sanitaires</h2>
+        <div class="nav-buttons">
+            <a href="{% url 'passer_vente_gros' %}" class="btn btn-gros">🏢 Vente de Gros</a>
+            <a href="{% url 'passer_vente_detail' %}" class="btn btn-detail">💊 Pharmacie de Jour</a>
+        </div>
+    </div>
+
     <table>
         <thead>
             <tr>
-                <th>Médicament</th>
-                <th>Prix Unit.</th>
-                <th>Stock</th>
-                <th>Aide IA (Posologie)</th>
-                <th>Statut</th>
+                <th>Code</th>
+                <th>Désignation Médicament</th>
+                <th>Prix Unitaire Base</th>
+                <th>Stock Total (Unités)</th>
+                <th>Conditionnement</th>
+                <th>Statut Critique</th>
             </tr>
         </thead>
         <tbody>
-            {% for medicament in medicaments %}
+            {% for med in medicaments %}
             <tr>
-                <td><strong>{{ medicament.nom }}</strong></td>
-                <td>{{ medicament.prix_unitaire }} $</td>
-                <td>{{ medicament.quantite_stock }}</td>
+                <td><strong>MED-{{ med.id }}</strong></td>
+                <td>{{ med.nom }}</td>
+                <td>{{ med.prix_unitaire }} $</td>
+                <td>{{ med.quantite_stock }} u</td>
+                <td>1 Carton = {{ med.unites_par_carton }} u</td>
                 <td>
-                    {% if medicament.posologie_standard_ia %}
-                        <span class="ia-badge">IA</span> <small>{{ medicament.posologie_standard_ia|truncatewords:8 }}</small>
+                    {% if med.quantite_stock < 200 %}
+                        <span class="badge badge-danger">🚨 CRITIQUE (Rupture imminente)</span>
+                    {% elif med.quantite_stock < 500 %}
+                        <span class="badge badge-warning">⚠️ ATTENTION (Stock Faible)</span>
                     {% else %}
-                        <small style="color: #ccc;">Non configuré</small>
-                    {% endif %}
-                </td>
-                <td class="{% if medicament.quantite_stock <= 5 %}alerte{% else %}OK{% endif %}">
-                    {% if medicament.quantite_stock <= 5 %}
-                        ⚠️ Réapprovisionner
-                    {% else %}
-                        ✅ En Stock
+                        <span class="badge badge-success">🟢 OPTIMAL (Sécurisé)</span>
                     {% endif %}
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" style="text-align: center;">Aucun médicament en stock.</td>
+                <td colspan="6" style="text-align: center; color: #7f8c8d;">Aucun médicament en stock actuellement.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-{% endblock %}
+</div>
+
+</body>
+</html>
