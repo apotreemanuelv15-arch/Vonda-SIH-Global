@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from decimal import Decimal
 from .models import Medicament, Vente, Etablissement
 
 @login_required
@@ -40,7 +41,7 @@ def passer_vente_gros(request):
                 quantite_vendue=quantite_cartons,
             )
             
-            # CHANGEMENT ICI : On redirige directement vers la page de la facture exclusive
+            # Redirection directe vers la page de la facture exclusive
             return redirect("afficher_facture_gros", vente_id=vente.id)
             
         except Exception as e:
@@ -54,15 +55,20 @@ def passer_vente_gros(request):
 
 @login_required
 def afficher_facture_gros(request, vente_id):
-    """Affiche le reçu officiel d'une vente de gros pour impression"""
+    """Affiche le reçu officiel d'une vente de gros pour impression sans erreur de type"""
     vente = get_object_or_404(Vente, id=vente_id)
     
-    # Calculs dynamiques pour l'affichage si vos modèles ne les stockent pas déjà en brut
+    # 1. Calcul du prix total (génère un type Decimal via les champs du modèle)
     prix_total_cartons = vente.quantite_vendue * (vente.medicament.prix_unitaire * vente.medicament.unites_par_carton)
-    redevance = prix_total_cartons * 0.05
+    
+    # 2. Sécurisation mathématique : Conversion du taux float en Decimal
+    redevance = prix_total_cartons * Decimal('0.05')
+    
+    # 3. Addition des deux montants de même type (Decimal)
     montant_total_sih = prix_total_cartons + redevance
 
     return render(request, "pharmacy/facture_gros.html", {
+        "vente": ... if 'vente' in locals() else vente,  # Protection d'existence de variable
         "vente": vente,
         "prix_total_cartons": prix_total_cartons,
         "redevance": redevance,
