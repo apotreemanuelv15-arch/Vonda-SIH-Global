@@ -2,77 +2,91 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Bon de Transfert - Vonda SIH</title>
+    <title>Bon de Transfert Officiel - Vonda SIH</title>
     <link rel="icon" href="data:,">
     <style>
-        body { font-family: 'Courier New', Courier, monospace; padding: 20px; background-color: #fff; color: #000; }
-        .document { max-width: 650px; margin: auto; border: 2px solid #000; padding: 20px; }
+        body { font-family: 'Courier New', Courier, monospace; padding: 20px; background-color: #fff; color: #000; line-height: 1.4; }
+        .document { max-width: 650px; margin: auto; border: 3px solid #000; padding: 25px; }
         .header { text-align: center; margin-bottom: 20px; }
-        .header h1 { margin: 0; font-size: 22px; text-transform: uppercase; }
-        .meta-info { display: flex; justify-content: space-between; margin-top: 15px; font-size: 14px; }
+        .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
+        .autorite { text-align: center; font-size: 12px; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
+        .meta-info { display: flex; justify-content: space-between; margin-top: 20px; font-size: 14px; border: 1px solid #000; padding: 10px; }
         .details { width: 100%; border-collapse: collapse; margin: 25px 0; }
-        .details th, .details td { border: 1px solid #000; padding: 10px; text-align: left; }
+        .details th, .details td { border: 1px solid #000; padding: 10px; text-align: left; font-size: 14px; }
         .details th { background-color: #f2f2f2; }
-        .signatures { display: flex; justify-content: space-between; margin-top: 5px; padding-top: 20px; }
-        .signature-box { width: 45%; border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 13px; }
+        .legal-notice { font-size: 12px; text-align: justify; margin-top: 20px; font-style: italic; border: 1px dashed #000; padding: 10px; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 40px; }
+        .signature-box { width: 45%; border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 13px; font-weight: bold; }
         .actions { text-align: center; margin-top: 30px; }
         .btn { padding: 10px 20px; background-color: #333; color: white; border: none; font-weight: bold; cursor: pointer; text-decoration: none; border-radius: 4px; font-family: Arial, sans-serif; margin: 5px; }
-        @media print { .actions { display: none; } .document { border: none; } }
+        @media print { .actions { display: none; } .document { border: 3px solid #000; } }
     </style>
 </head>
 <body>
 
 <div class="document">
+    <div class="autorite">
+        RÉPUBLIQUE DÉMOCRATIQUE DU CONGO<br>
+        MINISTÈRE DE LA SANTÉ PUBLIQUE — DIRECTION PHARMACEUTIQUE
+    </div>
+    
     <div class="header">
         <h1>VONDA SIH GLOBAL</h1>
-        <strong>Hôpital Général Vonda — Direction de la Logistique</strong>
+        <strong>Hôpital Général Vonda — Service d'Approvisionnement & Logistique</strong>
     </div>
 
-    <hr style="border: 1px solid #000;">
+    <hr style="border: 1px solid #000; margin: 15px 0;">
 
     <div class="header">
-        <h3>BON DE TRANSFERT INTER-ÉTABLISSEMENTS</h3>
-        <p>N° TRANS : <strong>TRF-{{ vente.id }}</strong></p>
+        <h2 style="margin: 5px 0; font-size: 18px;">LETTRE DE VOITURE & BON DE TRANSFERT SANITAIRE</h2>
+        <p style="margin: 5px 0;">N° RÉF-LOG : <strong>TRF-2026-00{{ vente.id }}</strong></p>
     </div>
 
     <div class="meta-info">
         <div>
-            <p><strong>Origine :</strong> Hôpital Général Vonda</p>
-            <p><strong>Date d'expédition :</strong> {{ vente.date_vente|date:"l j F Y à H:i" }}</p>
+            <p style="margin: 4px 0;"><strong>EXPÉDITEUR :</strong></p>
+            <p style="margin: 4px 0;">Hôpital Général Vonda</p>
+            <p style="margin: 4px 0;">Dépôt Central — Luanda / Kinshasa</p>
+            <p style="margin: 4px 0;">Date : {{ vente.date_vente|date:"d/m/Y à H:i" }}</p>
         </div>
         <div>
-            <p><strong>Destination :</strong> {{ etablissement.nom }}</p>
-            <p><strong>Localisation :</strong> {{ etablissement.ville|default:"RDC / Angola" }}</p>
+            <p style="margin: 4px 0;"><strong>DESTINATAIRE EXCLUSIF :</strong></p>
+            <p style="margin: 4px 0; font-weight: bold; text-transform: uppercase;">{{ etablissement.nom }}</p>
+            <p style="margin: 4px 0;"><strong>LIEU DE LIVRAISON :</strong> {{ etablissement.ville }}</p>
+            <p style="margin: 4px 0;">Statut : Établissement Sanitaire Enregistré</p>
         </div>
     </div>
 
     <table class="details">
         <thead>
             <tr>
-                <th>Désignation Médicament</th>
-                <th>Quantité (Cartons)</th>
-                <th>Volume Total (Unités)</th>
+                <th>Désignation Produit</th>
+                <th>Quantité Chargée</th>
+                <th>Équivalence Unitaire</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td>{{ vente.medicament.nom }}</td>
-                <td><strong>{{ vente.quantite_vendue }} exp.</strong></td>
+                <td><strong>{{ vente.medicament.nom }}</strong></td>
+                <td>{{ vente.quantite_vendue }} Carton(s) de Gros</td>
                 <td>{{ volume_total }} u</td>
             </tr>
         </tbody>
     </table>
 
-    <p style="font-size: 13px;"><em>Note : Ce document atteste que le stock ci-dessus a été officiellement déduit des inventaires centraux pour approvisionnement d'urgence.</em></p>
+    <div class="legal-notice">
+        <strong>AVIS AUX AUTORITÉS DE CONTRÔLE ET CORPS DE POLICE :</strong><br>
+        Ce convoi transporte des produits pharmaceutiques d'urgence déduits des stocks réglementaires de l'Hôpital Général Vonda pour l'approvisionnement exclusif de l'établissement médical mentionné ci-dessus. Ce mouvement est conforme à la législation sanitaire en vigueur. Prière de faciliter la libre circulation de ce véhicule de secours.
+    </div>
 
     <div class="signatures">
-        <div class="signature-box">Signature du Logisticien Expéditeur</div>
-        <div class="signature-box">Signature du Chauffeur / Réceptionnaire</div>
+        <div class="signature-box">Le Pharmacien Directeur / Logisticien</div>
+        <div class="signature-box">Visa Chauffeur / Transporteur</div>
     </div>
 </div>
 
 <div class="actions">
-    <button class="btn" onclick="window.print()">🖨️ Imprimer le Bon de Convoi</button>
+    <button class="btn" onclick="window.print()">🖨️ Imprimer le Document de Convoi</button>
     <a href="{% url 'inventaire' %}" class="btn" style="background-color: #e67e22;">📦 Retour à l'Inventaire</a>
 </div>
 
