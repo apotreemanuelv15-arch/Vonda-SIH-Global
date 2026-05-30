@@ -54,9 +54,11 @@ def passer_vente_gros(request):
     })
 
 @login_required
-def afficher_facture_gros(request, vente_id):
+def afficher_facture_gros(request, username=None, vente_id=None):
     """Affiche le reçu officiel d'une vente de gros pour impression sans erreur de type"""
-    vente = get_object_or_404(Vente, id=vente_id)
+    # Gestion de la rétrocompatibilité des arguments de l'URL si nécessaire
+    target_id = vente_id if vente_id else username
+    vente = get_object_or_404(Vente, id=target_id)
     
     # 1. Calcul du prix total (génère un type Decimal via les champs du modèle)
     prix_total_cartons = vente.quantite_vendue * (vente.medicament.prix_unitaire * vente.medicament.unites_par_carton)
@@ -122,9 +124,72 @@ def afficher_facture_detail(request, vente_id):
     vente = get_object_or_404(Vente, id=vente_id)
     
     # Calcul au détail : Unités vendues x Prix unitaire de base
-    montant_total_unitaire = vente.quantite_vendue * vente.medicament.prix_unitaire
+    montant_total_unitaire = geometry_total = vente.quantite_vendue * vente.medicament.prix_unitaire
 
     return render(request, "pharmacy/facture_detail.html", {
         "vente": vente,
         "montant_total_unitaire": montant_total_unitaire
+    })
+
+@login_required
+def passer_transfert(request):
+    """Transfère des cartons de médicaments vers un autre établissement sanitaire"""
+    medicaments = Medicament.objects.filter(quantite_stock__gt=0)
+    etablissements = Etablissement.objects.all()
+
+    if request.method == "POST":
+        medicament_id = request.POST.get("medicament")
+        quantite_cartons = int(request.POST.get("quantite_cartons", 0))
+        etablissement_id = request.POST.get("etablissement")
+
+        medicament = get_object_or_404(Medicament, id=medicament_id)
+        etablissement = get_object_or_404(Etablissement, id=etablissement_id)
+        
+        unites_demandees = quantite_cartons * medicament.unites_par_carton
+        
+        # Validation stricte de la capacité logistique
+        if medicament.quantite_stock < unites_demandees:
+            messages.error(
+                request, 
+                f"Transfert avorté ! Stock insuffisant pour expédier {quantite_cartons} cartons."
+            )
+            return redirect("passer_transfert")
+
+        try:
+            # Soustraction unique du stock central
+            medicament.quantite_stock -= unites_demandees
+            medicament.save()
+
+            # Enregistrement du mouvement logistique
+            vente = Vente.objects.create(
+                medicament=medicament,
+                type_vente='GROS',
+                quantite_vendue=quantite_cartons,
+            )
+            
+            # Redirection vers la génération du Bon de Transport Officiel
+            return redirect("afficher_bon_transfert", vente_id=vente.id, etab_id=etablissement.id)
+            
+        except Exception as e:
+            messages.error(request, f"Échec de l'ordre de transfert : {str(e)}")
+            return redirect("passer_transfert")
+
+    return render(request, "pharmacy/transfert.html", {
+        "medicaments": medicaments,
+        "etablissements": etablissements
+    })
+
+@login_required
+def afficher_bon_transfert(request, vente_id, etab_id):
+    """Génère le Bon de Convoi officiel pour le transport routier"""
+    vente = get_object_or_404(Vente, id=vente_id)
+    etablissement = get_object_or_404(Etablissement, id=etab_id)
+    
+    volume_total = vente.quantite_vendue * vente.medicament.unites_par_carton
+
+    return render(request, "pharmacy/bon_transfert.html", {
+        "vente": ... if 'vente' in locals() else vente,
+        "vente": vente,
+        "etablissement": etablissement,
+        "volume_total": volume_total
     })

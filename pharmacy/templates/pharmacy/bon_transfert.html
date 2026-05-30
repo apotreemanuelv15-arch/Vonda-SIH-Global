@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Bon de Transfert - Vonda SIH</title>
+    <link rel="icon" href="data:,">
+    <style>
+        body { font-family: 'Courier New', Courier, monospace; padding: 20px; background-color: #fff; color: #000; }
+        .document { max-width: 650px; margin: auto; border: 2px solid #000; padding: 20px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 22px; text-transform: uppercase; }
+        .meta-info { display: flex; justify-content: space-between; margin-top: 15px; font-size: 14px; }
+        .details { width: 100%; border-collapse: collapse; margin: 25px 0; }
+        .details th, .details td { border: 1px solid #000; padding: 10px; text-align: left; }
+        .details th { background-color: #f2f2f2; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 5px; padding-top: 20px; }
+        .signature-box { width: 45%; border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 13px; }
+        .actions { text-align: center; margin-top: 30px; }
+        .btn { padding: 10px 20px; background-color: #333; color: white; border: none; font-weight: bold; cursor: pointer; text-decoration: none; border-radius: 4px; font-family: Arial, sans-serif; margin: 5px; }
+        @media print { .actions { display: none; } .document { border: none; } }
+    </style>
+</head>
+<body>
+
+<div class="document">
+    <div class="header">
+        <h1>VONDA SIH GLOBAL</h1>
+        <strong>Hôpital Général Vonda — Direction de la Logistique</strong>
+    </div>
+
+    <hr style="border: 1px solid #000;">
+
+    <div class="header">
+        <h3>BON DE TRANSFERT INTER-ÉTABLISSEMENTS</h3>
+        <p>N° TRANS : <strong>TRF-{{ vente.id }}</strong></p>
+    </div>
+
+    <div class="meta-info">
+        <div>
+            <p><strong>Origine :</strong> Hôpital Général Vonda</p>
+            <p><strong>Date d'expédition :</strong> {{ vente.date_vente|date:"l j F Y à H:i" }}</p>
+        </div>
+        <div>
+            <p><strong>Destination :</strong> {{ etablissement.nom }}</p>
+            <p><strong>Localisation :</strong> {{ etablissement.ville|default:"RDC / Angola" }}</p>
+        </div>
+    </div>
+
+    <table class="details">
+        <thead>
+            <tr>
+                <th>Désignation Médicament</th>
+                <th>Quantité (Cartons)</th>
+                <th>Volume Total (Unités)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ vente.medicament.nom }}</td>
+                <td><strong>{{ vente.quantite_vendue }} exp.</strong></td>
+                <td>{{ volume_total }} u</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p style="font-size: 13px;"><em>Note : Ce document atteste que le stock ci-dessus a été officiellement déduit des inventaires centraux pour approvisionnement d'urgence.</em></p>
+
+    <div class="signatures">
+        <div class="signature-box">Signature du Logisticien Expéditeur</div>
+        <div class="signature-box">Signature du Chauffeur / Réceptionnaire</div>
+    </div>
+</div>
+
+<div class="actions">
+    <button class="btn" onclick="window.print()">🖨️ Imprimer le Bon de Convoi</button>
+    <a href="{% url 'inventaire' %}" class="btn" style="background-color: #e67e22;">📦 Retour à l'Inventaire</a>
+</div>
+
+</body>
+</html>

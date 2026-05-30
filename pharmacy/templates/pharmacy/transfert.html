@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Vonda SIH - Transfert de Stock</title>
+    <link rel="icon" href="data:,">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h2 { color: #2c3e50; text-align: center; margin-bottom: 25px; border-bottom: 2px solid #e67e22; padding-bottom: 10px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #34495e; }
+        select, input[type="number"] { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; box-sizing: border-box; font-size: 15px; }
+        .btn-submit { width: 100%; background-color: #e67e22; color: white; padding: 12px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .btn-submit:hover { background-color: #d35400; }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #7f8c8d; text-decoration: none; font-size: 14px; }
+        .messages { background-color: #fadbd8; color: #78281f; padding: 12px; border-radius: 4px; margin-bottom: 20px; border-left: 5px solid #e74c3c; list-style: none; padding-left: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🚚 Transfert Inter-Établissements</h2>
+
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="medicament">Sélectionner le Médicament :</label>
+            <select id="medicament" name="medicament" required>
+                {% for med in medicaments %}
+                    <option value="{{ med.id }}">{{ med.nom }} (Dispo : {{ med.quantite_stock }} u)</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="quantite_cartons">Nombre de Cartons à transférer :</label>
+            <input type="number" id="quantite_cartons" name="quantite_cartons" min="1" required placeholder="Ex: 5">
+        </div>
+
+        <div class="form-group">
+            <label for="etablissement">Établissement Destinataire :</label>
+            <select id="etablissement" name="etablissement" required>
+                {% for etab in etablissements %}
+                    <option value="{{ etab.id }}">{{ etab.nom }} ({{ etab.ville|default:"Kinshasa" }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn-submit">📦 Valider l'Expédition du Convoi</button>
+    </form>
+
+    <a href="{% url 'inventaire' %}" class="back-link">⬅️ Retourner à l'Inventaire</a>
+</div>
+
+</body>
+</html>
