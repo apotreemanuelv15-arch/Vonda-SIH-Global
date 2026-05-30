@@ -52,7 +52,7 @@
         <div>
             <p style="margin: 4px 0;"><strong>DESTINATAIRE EXCLUSIF :</strong></p>
             <p style="margin: 4px 0; font-weight: bold; text-transform: uppercase;">{{ etablissement.nom }}</p>
-            <p style="margin: 4px 0;"><strong>LIEU DE LIVRAISON :</strong> {{ etablissement.ville }}</p>
+            <p style="margin: 4px 0;"><strong>LIEU DE LIVRAISON :</strong> {{ etablissement.adresse|default:"Non spécifiée (Contrôle requis)" }}</p>
             <p style="margin: 4px 0;">Statut : Établissement Sanitaire Enregistré</p>
         </div>
     </div>
