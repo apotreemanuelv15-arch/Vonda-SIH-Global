@@ -23,7 +23,7 @@
     <div class="header">
         <h2>VONDA SIH GLOBAL</h2>
         <p><strong>Hôpital Général Vonda - Département Pharmacie</strong></p>
-        <p>Date de l'opération : Lundi 11 Mai 2026</p>
+        <p>Date de l'opération : {{ vente.date_vente|date:"l j F Y à H:i" }}</p>
         <p><strong>FACTURE N° : {{ vente.code_facture_unique }}</strong></p>
     </div>
 
