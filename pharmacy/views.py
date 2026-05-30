@@ -56,7 +56,6 @@ def passer_vente_gros(request):
 @login_required
 def afficher_facture_gros(request, username=None, vente_id=None):
     """Affiche le reçu officiel d'une vente de gros pour impression sans erreur de type"""
-    # Gestion de la rétrocompatibilité des arguments de l'URL si nécessaire
     target_id = vente_id if vente_id else username
     vente = get_object_or_404(Vente, id=target_id)
     
@@ -124,7 +123,7 @@ def afficher_facture_detail(request, vente_id):
     vente = get_object_or_404(Vente, id=vente_id)
     
     # Calcul au détail : Unités vendues x Prix unitaire de base
-    montant_total_unitaire = geometry_total = vente.quantite_vendue * vente.medicament.prix_unitaire
+    montant_total_unitaire = vente.quantite_vendue * vente.medicament.prix_unitaire
 
     return render(request, "pharmacy/facture_detail.html", {
         "vente": vente,
@@ -188,8 +187,15 @@ def afficher_bon_transfert(request, vente_id, etab_id):
     volume_total = vente.quantite_vendue * vente.medicament.unites_par_carton
 
     return render(request, "pharmacy/bon_transfert.html", {
-        "vente": ... if 'vente' in locals() else vente,
         "vente": vente,
         "etablissement": etablissement,
         "volume_total": volume_total
+    })
+
+@login_required
+def rapport_flux(request):
+    """Affiche le journal historique de toutes les transactions de stock"""
+    mouvements = Vente.objects.all().order_by('-date_vente')
+    return render(request, "pharmacy/rapport_flux.html", {
+        "mouvements": mouvements
     })

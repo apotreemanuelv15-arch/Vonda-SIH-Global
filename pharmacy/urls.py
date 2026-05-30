@@ -16,4 +16,7 @@ urlpatterns = [
     # 🚚 Routes pour le transfert Inter-Établissements
     path('transfert/', views.passer_transfert, name='passer_transfert'),
     path('bon-transfert/<int:vente_id>/<int:etab_id>/', views.afficher_bon_transfert, name='afficher_bon_transfert'),
+    
+    # 📊 Route du Journal de Surveillance de Flux Logistique
+    path('rapport-flux/', views.rapport_flux, name='rapport-flux'),
 ]
