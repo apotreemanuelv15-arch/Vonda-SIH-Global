@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Vonda SIH - Vente au Détail</title>
+    <link rel="icon" href="data:,">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h2 { color: #2c3e50; text-align: center; margin-bottom: 25px; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #34495e; }
+        select, input[type="number"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; box-sizing: border-box; font-size: 15px; }
+        .btn-submit { width: 100%; background-color: #27ae60; color: white; padding: 12px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .btn-submit:hover { background-color: #219653; }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #7f8c8d; text-decoration: none; font-size: 14px; }
+        .messages { background-color: #fadbd8; color: #78281f; padding: 12px; border-radius: 4px; margin-bottom: 20px; border-left: 5px solid #e74c3c; list-style: none; padding-left: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>💊 Pharmacie de Jour - Vente au Détail</h2>
+
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="patient">Nom / Identifiant du Patient :</label>
+            <input type="text" id="patient" name="patient" placeholder="Ex: Jean Mende" required>
+        </div>
+
+        <div class="form-group">
+            <label for="medicament">Sélectionner le Médicament :</label>
+            <select id="medicament" name="medicament" required>
+                {% for med in medicaments %}
+                    <option value="{{ med.id }}">{{ med.nom }} (Dispo : {{ med.quantite_stock }} u | {{ med.prix_unitaire }} $)</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="quantite_unites">Nombre d'Unités (Boîtes/Flacons) à distribuer :</label>
+            <input type="number" id="quantite_unites" name="quantite_unites" min="1" required placeholder="Ex: 3">
+        </div>
+
+        <button type="submit" class="btn-submit">⚡ Enregistrer et Servir le Patient</button>
+    </form>
+
+    <a href="{% url 'inventaire' %}" class="back-link">⬅️ Annuler et Retourner à l'Inventaire</a>
+</div>
+
+</body>
+</html>

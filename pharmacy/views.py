@@ -68,9 +68,64 @@ def afficher_facture_gros(request, vente_id):
     montant_total_sih = prix_total_cartons + redevance
 
     return render(request, "pharmacy/facture_gros.html", {
-        "vente": ... if 'vente' in locals() else vente,  # Protection d'existence de variable
         "vente": vente,
         "prix_total_cartons": prix_total_cartons,
         "redevance": redevance,
         "montant_total_sih": montant_total_sih
+    })
+
+@login_required
+def passer_vente_detail(request):
+    """Gère la distribution au détail (à l'unité) pour les patients de l'hôpital"""
+    medicaments = Medicament.objects.filter(quantite_stock__gt=0)
+
+    if request.method == "POST":
+        medicament_id = request.POST.get("medicament")
+        quantite_unites = int(request.POST.get("quantite_unites", 0))
+        nom_patient = request.POST.get("patient")
+
+        medicament = get_object_or_404(Medicament, id=medicament_id)
+        
+        # Vérification stricte du stock à l'unité
+        if medicament.quantite_stock < quantite_unites:
+            messages.error(
+                request, 
+                f"Alerte Stock ! Il ne reste que {medicament.quantite_stock} unités de {medicament.nom}."
+            )
+            return redirect("passer_vente_detail")
+
+        try:
+            # Déduction directe des unités du stock global
+            medicament.quantite_stock -= quantite_unites
+            medicament.save()
+
+            # Enregistrement de la vente de type 'DETAIL'
+            vente = Vente.objects.create(
+                medicament=medicament,
+                type_vente='DETAIL',
+                quantite_vendue=quantite_unites,  # Représente les unités directes
+            )
+            
+            # Redirection vers le reçu au détail personnalisé
+            return redirect("afficher_facture_detail", vente_id=vente.id)
+            
+        except Exception as e:
+            messages.error(request, f"Erreur système d'exploitation : {str(e)}")
+            return redirect("passer_vente_detail")
+
+    return render(request, "pharmacy/vente_detail.html", {
+        "medicaments": medicaments
+    })
+
+@login_required
+def afficher_facture_detail(request, vente_id):
+    """Génère le reçu au détail pour le dossier du patient"""
+    vente = get_object_or_404(Vente, id=vente_id)
+    
+    # Calcul au détail : Unités vendues x Prix unitaire de base
+    montant_total_unitaire = vente.quantite_vendue * vente.medicament.prix_unitaire
+
+    return render(request, "pharmacy/facture_detail.html", {
+        "vente": vente,
+        "montant_total_unitaire": montant_total_unitaire
     })
