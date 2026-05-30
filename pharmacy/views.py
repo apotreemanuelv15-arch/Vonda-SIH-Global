@@ -14,7 +14,6 @@ def inventaire(request):
 @login_required
 def passer_vente_gros(request):
     """Gère la facturation et le déstockage massif par cartons de gros"""
-    # Récupération des médicaments en stock et des établissements
     medicaments = Medicament.objects.filter(quantite_stock__gt=0)
     etablissements = Etablissement.objects.all()
 
@@ -24,17 +23,12 @@ def passer_vente_gros(request):
         etablissement_id = request.POST.get("etablissement")
 
         medicament = get_object_or_404(Medicament, id=medicament_id)
-        
-        # Calcul des unités individuelles requises
         unites_demandees = quantite_cartons * medicament.unites_par_carton
         
-        # Vérification stricte des stocks avant validation
         if medicament.quantite_stock < unites_demandees:
             messages.error(
                 request, 
-                f"Opération refusée ! Stock insuffisant pour {medicament.nom}. "
-                f"Demandé : {quantite_cartons} cartons ({unites_demandees} u), "
-                f"Disponible : {medicament.stock_en_cartons} cartons ({medicament.quantite_stock} u)."
+                f"Opération refusée ! Stock insuffisant pour {medicament.nom}."
             )
             return redirect("passer_vente_gros")
 
@@ -46,12 +40,8 @@ def passer_vente_gros(request):
                 quantite_vendue=quantite_cartons,
             )
             
-            messages.success(
-                request, 
-                f"✅ Vente de gros enregistrée ! {quantite_cartons} cartons de {medicament.nom} déstockés. "
-                f"Code Facture : {vente.code_facture_unique}."
-            )
-            return redirect("passer_vente_gros")
+            # CHANGEMENT ICI : On redirige directement vers la page de la facture exclusive
+            return redirect("afficher_facture_gros", vente_id=vente.id)
             
         except Exception as e:
             messages.error(request, f"Erreur d'exécution du module : {str(e)}")
@@ -60,4 +50,21 @@ def passer_vente_gros(request):
     return render(request, "pharmacy/vente_gros.html", {
         "medicaments": medicaments,
         "etablissements": etablissements
+    })
+
+@login_required
+def afficher_facture_gros(request, vente_id):
+    """Affiche le reçu officiel d'une vente de gros pour impression"""
+    vente = get_object_or_404(Vente, id=vente_id)
+    
+    # Calculs dynamiques pour l'affichage si vos modèles ne les stockent pas déjà en brut
+    prix_total_cartons = vente.quantite_vendue * (vente.medicament.prix_unitaire * vente.medicament.unites_par_carton)
+    redevance = prix_total_cartons * 0.05
+    montant_total_sih = prix_total_cartons + redevance
+
+    return render(request, "pharmacy/facture_gros.html", {
+        "vente": vente,
+        "prix_total_cartons": prix_total_cartons,
+        "redevance": redevance,
+        "montant_total_sih": montant_total_sih
     })

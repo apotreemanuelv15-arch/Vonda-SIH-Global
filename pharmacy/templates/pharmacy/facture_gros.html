@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Facture SIH - {{ vente.code_facture_unique }}</title>
+    <style>
+        body { font-family: 'Courier New', Courier, monospace; background-color: #f8f9fa; margin: 0; padding: 20px; }
+        .invoice-box { max-width: 700px; margin: auto; padding: 30px; border: 1px solid #eee; background: #fff; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 20px; margin-bottom: 20px; }
+        .details-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .details-table th { background: #f2f2f2; text-align: left; padding: 8px; border: 1px solid #ddd; }
+        .details-table td { padding: 8px; border: 1px solid #ddd; }
+        .total-zone { text-align: right; margin-top: 20px; font-size: 16px; font-weight: bold; }
+        .actions { text-align: center; margin-top: 30px; }
+        .btn-print { background-color: #34495e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; cursor: pointer; border: none; }
+        .btn-back { background-color: #7f8c8d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin-left: 10px; }
+        @media print { .actions { display: none; } body { background: white; padding: 0; } .invoice-box { box-shadow: none; border: none; } }
+    </style>
+</head>
+<body>
+
+<div class="invoice-box">
+    <div class="header">
+        <h2>VONDA SIH GLOBAL</h2>
+        <p><strong>Hôpital Général Vonda - Département Pharmacie</strong></p>
+        <p>Date de l'opération : Lundi 11 Mai 2026</p>
+        <p><strong>FACTURE N° : {{ vente.code_facture_unique }}</strong></p>
+    </div>
+
+    <table class="details-table">
+        <thead>
+            <tr>
+                <th>Désignation Médicament</th>
+                <th>Conditionnement</th>
+                <th>Quantité</th>
+                <th>Prix Unitaire Base</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ vente.medicament.nom }}</td>
+                <td>Carton de Gros ({{ vente.medicament.unites_par_carton }} u)</td>
+                <td>{{ vente.quantite_vendue }} exp.</td>
+                <td>{{ vente.medicament.prix_unitaire }} $ / u</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="total-zone">
+        <p>Montant Hors Taxe : {{ prix_total_cartons|floatformat:2 }} $</p>
+        <p>Redevance Sanitaire Globale (5%) : {{ redevance|floatformat:2 }} $</p>
+        <hr style="border-top: 1px dashed #000;">
+        <p style="font-size: 18px; color: #c0392b;">NET À PAYER COMPTANT : {{ montant_total_sih|floatformat:2 }} $</p>
+    </div>
+
+    <div class="actions">
+        <button onclick="window.print()" class="btn-print">🖨️ Imprimer la Facture</button>
+        <a href="/vente-gros/" class="btn-back">⬅️ Nouvelle Vente</a>
+    </div>
+</div>
+
+</body>
+</html>
