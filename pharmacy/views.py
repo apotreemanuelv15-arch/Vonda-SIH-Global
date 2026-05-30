@@ -82,11 +82,10 @@ def passer_vente_detail(request):
     if request.method == "POST":
         medicament_id = request.POST.get("medicament")
         quantite_unites = int(request.POST.get("quantite_unites", 0))
-        nom_patient = request.POST.get("patient")
 
         medicament = get_object_or_404(Medicament, id=medicament_id)
         
-        # Vérification stricte du stock à l'unité
+        # 1. Vérification stricte du stock disponible à l'unité
         if medicament.quantite_stock < quantite_unites:
             messages.error(
                 request, 
@@ -95,22 +94,22 @@ def passer_vente_detail(request):
             return redirect("passer_vente_detail")
 
         try:
-            # Déduction directe des unités du stock global
+            # 2. Déduction unique et sécurisée du stock avant enregistrement
             medicament.quantite_stock -= quantite_unites
             medicament.save()
 
-            # Enregistrement de la vente de type 'DETAIL'
+            # 3. Enregistrement de la vente de type 'DETAIL'
             vente = Vente.objects.create(
                 medicament=medicament,
                 type_vente='DETAIL',
-                quantite_vendue=quantite_unites,  # Représente les unités directes
+                quantite_vendue=quantite_unites,
             )
             
-            # Redirection vers le reçu au détail personnalisé
+            # 4. Redirection forcée immédiate pour vider le formulaire
             return redirect("afficher_facture_detail", vente_id=vente.id)
             
         except Exception as e:
-            messages.error(request, f"Erreur système d'exploitation : {str(e)}")
+            messages.error(request, f"Erreur système : {str(e)}")
             return redirect("passer_vente_detail")
 
     return render(request, "pharmacy/vente_detail.html", {
