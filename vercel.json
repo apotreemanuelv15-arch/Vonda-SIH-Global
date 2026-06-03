@@ -8,11 +8,15 @@
   ],
   "routes": [
     {
-      "src": "/static/(.*)",
-      "dest": "/staticfiles/$1"
+      "src": "/static/admin/(.*)",
+      "dest": "staticfiles/admin/$1"
     },
     {
-      "src": "(.*)",
+      "src": "/static/(.*)",
+      "dest": "static/$1"
+    },
+    {
+      "src": "/(.*)",
       "dest": "core/wsgi.py"
     }
   ]
