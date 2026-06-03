@@ -14,7 +14,7 @@ def inventaire(request):
 
 @login_required
 def passer_vente_gros(request):
-    """Gère la facturation et le déstockage massif par cartons de gros"""
+    """Gère la facturation et le déstockage massif par cartons de gros avec déduction ANTI-FRAUDE"""
     medicaments = Medicament.objects.filter(quantite_stock__gt=0)
     etablissements = Etablissement.objects.all()
 
@@ -26,6 +26,7 @@ def passer_vente_gros(request):
         medicament = get_object_or_404(Medicament, id=medicament_id)
         unites_demandees = quantite_cartons * medicament.unites_par_carton
         
+        # 1. Vérification stricte et inviolable du stock disponible
         if medicament.quantite_stock < unites_demandees:
             messages.error(
                 request, 
@@ -34,14 +35,18 @@ def passer_vente_gros(request):
             return redirect("passer_vente_gros")
 
         try:
-            # Création de la transaction de gros
+            # SÉCURITÉ RENFORCÉE : Soustraction immédiate et définitive du stock central
+            medicament.quantite_stock -= unites_demandees
+            medicament.save()
+
+            # 2. Enregistrement comptable de la transaction de gros
             vente = Vente.objects.create(
                 medicament=medicament,
                 type_vente='GROS',
                 quantite_vendue=quantite_cartons,
             )
             
-            # Redirection directe vers la page de la facture exclusive
+            # 3. Redirection directe vers la page de la facture exclusive
             return redirect("afficher_facture_gros", vente_id=vente.id)
             
         except Exception as e:
@@ -191,6 +196,7 @@ def afficher_bon_transfert(request, vente_id, etab_id):
         "etablissement": etablissement,
         "volume_total": volume_total
     })
+
 
 @login_required
 def rapport_flux(request):

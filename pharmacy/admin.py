@@ -58,11 +58,24 @@ class ChirurgieAssisteeAdmin(admin.ModelAdmin):
 
 @admin.register(Medicament)
 class MedicamentAdmin(admin.ModelAdmin):
-    # 1. Les colonnes visibles dans le tableau de la liste des médicaments
-    list_display = ('nom', 'pays_origine', 'quantite_stock', 'stock_en_cartons', 'prix_unitaire')
+    # 1. Ajout de l'affichage en cartons calculé en temps réel à côté des unités !
+    list_display = ('id', 'nom', 'quantite_stock', 'affichage_stock_cartons', 'unites_par_carton', 'prix_unitaire', 'pays_origine')
     list_filter = ('conditionnement_achat', 'pays_origine', 'etablissement')
     search_fields = ('nom', 'pays_origine', 'numero_lot_import')
     
+    # Méthode intelligente de calcul de conversion pour l'administration
+    def affichage_stock_cartons(self, obj):
+        """Calcule en temps réel le nombre exact de cartons et le reste à l'unité"""
+        if obj.unites_par_carton and obj.unites_par_carton > 0:
+            cartons = obj.quantite_stock // obj.unites_par_carton
+            unites_restantes = obj.quantite_stock % obj.unites_par_carton
+            if unites_restantes > 0:
+                return f"📦 {cartons} carton(s) + {unites_restantes} u"
+            return f"📦 {cartons} carton(s)"
+        return "Conditionnement invalide"
+    
+    affichage_stock_cartons.short_description = "Stock en Cartons (Calculé)"
+
     # 2. L'organisation des champs à l'intérieur du formulaire d'ajout/modification
     fieldsets = (
         ('Informations Générales', {
@@ -85,17 +98,22 @@ class MedicamentAdmin(admin.ModelAdmin):
 @admin.register(Vente)
 class VenteAdmin(admin.ModelAdmin):
     list_display = ('code_facture_unique', 'medicament', 'type_vente', 'quantite_vendue', 'prix_total', 'date_vente')
-    readonly_fields = ('prix_total', 'code_facture_unique') # Sécurité : calculé par le système, non modifiable à la main
+    readonly_fields = ('prix_total', 'code_facture_unique')
     list_filter = ('type_vente', 'date_vente')
     search_fields = ('code_facture_unique', 'medicament__nom')
     date_hierarchy = 'date_vente'
+
+@admin.register(Etablissement)
+class EtablissementAdmin(admin.ModelAdmin):
+    # Ajout d'une interface de visualisation propre pour l'adresse (Lieu de livraison de la police)
+    list_display = ('id', 'nom', 'type_etablissement', 'adresse', 'telephone')
+    search_fields = ('nom', 'adresse')
 
 @admin.register(GuideModule)
 class GuideModuleAdmin(admin.ModelAdmin):
     list_display = ('titre_module',)
 
-# Enregistrement des autres modèles
-admin.site.register(Etablissement)
+# Enregistrement des autres modèles restants
 admin.site.register(Consultation)
 admin.site.register(Hospitalisation)
 admin.site.register(TransactionBancaire)
