@@ -19,4 +19,6 @@ urlpatterns = [
     
     # 📊 Route du Journal de Surveillance de Flux Logistique
     path('rapport-flux/', views.rapport_flux, name='rapport-flux'),
+
+    path('hologramme-ia/', views.hologramme_ia_view, name='hologramme_ia'),
 ]

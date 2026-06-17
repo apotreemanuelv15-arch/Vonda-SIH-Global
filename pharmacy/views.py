@@ -197,7 +197,6 @@ def afficher_bon_transfert(request, vente_id, etab_id):
         "volume_total": volume_total
     })
 
-
 @login_required
 def rapport_flux(request):
     """Affiche le journal historique de toutes les transactions de stock"""
@@ -205,3 +204,8 @@ def rapport_flux(request):
     return render(request, "pharmacy/rapport_flux.html", {
         "mouvements": mouvements
     })
+
+@login_required
+def hologramme_ia_view(request):
+    """Affiche l'interface de l'Hologramme Vocal et Multimodal IA (Alignement Rectifié)"""
+    return render(request, 'pharmacy/hologramme_ia.html')
