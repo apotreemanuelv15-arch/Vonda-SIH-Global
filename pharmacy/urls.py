@@ -20,7 +20,9 @@ urlpatterns = [
     # 📊 Route du Journal de Surveillance de Flux Logistique
     path('rapport-flux/', views.rapport_flux, name='rapport-flux'),
 
+    # 🔮 Interface Graphique de l'Hologramme IA
     path('hologramme-ia/', views.hologramme_ia_view, name='hologramme_ia'),
 
+    # 📡 API d'arrière-plan pour la recherche Radar Topographique
     path('api/radar-ia/', views.API_recherche_radar_ia, name='api_recherche_radar_ia'),
 ]
