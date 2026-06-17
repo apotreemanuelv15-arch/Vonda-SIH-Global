@@ -21,4 +21,6 @@ urlpatterns = [
     path('rapport-flux/', views.rapport_flux, name='rapport-flux'),
 
     path('hologramme-ia/', views.hologramme_ia_view, name='hologramme_ia'),
+
+    path('api/radar-ia/', views.API_recherche_radar_ia, name='api_recherche_radar_ia'),
 ]

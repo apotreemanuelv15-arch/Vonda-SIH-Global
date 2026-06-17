@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
+from django.db.models import Q
 from decimal import Decimal
 from .models import Medicament, Vente, Etablissement
 
@@ -207,5 +209,56 @@ def rapport_flux(request):
 
 @login_required
 def hologramme_ia_view(request):
-    """Affiche l'interface de l'Hologramme Vocal et Multimodal IA (Alignement Rectifié)"""
+    """Affiche l'interface de l'Hologramme Vocal et Multimodal IA"""
     return render(request, 'pharmacy/hologramme_ia.html')
+
+@login_required
+def API_recherche_radar_ia(request):
+    """
+    Moteur de recherche topographique et prédictif pour l'Hologramme IA.
+    Scanne les stocks réels, les arrivages (lots) et l'historique transfrontalier.
+    """
+    terme_recherche = request.GET.get('medicament', '').strip()
+    
+    if not terme_recherche:
+        return JsonResponse({"statut": "vide", "message": "Aucun produit spécifié."})
+    
+    stocks_trouves = Medicament.objects.filter(
+        Q(nom__icontains=terme_recherche) | Q(numero_lot_import__icontains=terme_recherche)
+    ).select_related('etablissement')
+
+    resultats_officines = []
+    arrivages_futurs = []
+
+    for med in stocks_trouves:
+        cartons = 0
+        if med.unites_par_carton and med.unites_par_carton > 0:
+            cartons = med.quantite_stock // med.unites_par_carton
+
+        if med.quantite_stock > 0:
+            resultats_officines.append({
+                "pharmacie": med.etablissement.nom,
+                "adresse": med.etablissement.adresse,
+                "pays": med.pays_origine,
+                "stock_unites": med.quantite_stock,
+                "stock_cartons": cartons,
+                "prix": float(med.prix_unitaire),
+                "statut": "DISPONIBLE IMMÉDIATEMENT"
+            })
+        else:
+            if med.numero_lot_import or med.cout_fret_douane > 0:
+                arrivages_futurs.append({
+                    "depot_destination": med.etablissement.nom,
+                    "numero_lot": med.numero_lot_import,
+                    "provenance": med.pays_origine,
+                    "fret_douane_applique": float(med.cout_fret_douane),
+                    "statut": "EN COURS D'ARRIVAGE / TRANSIT DOUANIER"
+                })
+
+    return JsonResponse({
+        "statut": "succes",
+        "produit_recherche": terme_recherche,
+        "disponibilites_immédiates": resultats_officines,
+        "radar_arrivages_previsionnels": arrivages_futurs,
+        "total_sites_allies": len(resultats_officines) + len(arrivages_futurs)
+    })
