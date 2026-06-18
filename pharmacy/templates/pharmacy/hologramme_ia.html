@@ -25,7 +25,7 @@
         position: relative;
         box-shadow: 0 0 40px rgba(56, 189, 248, 0.4), inset 0 0 40px rgba(56, 189, 248, 0.2);
         animation: rotateSphere 10s linear infinite;
-        transition: all 0.5s ease;
+        transition: transform 0.05s ease, box-shadow 0.05s ease, border-color 0.3s ease;
     }
 
     .hologram-sphere::before, .hologram-sphere::after {
@@ -55,6 +55,7 @@
         height: 5px;
         background-color: #38bdf8;
         border-radius: 2px;
+        transition: height 0.05s ease;
     }
     .listening .audio-bar {
         animation: pulseBar 0.8s ease infinite alternate;
@@ -67,7 +68,7 @@
     /* Animations */
     @keyframes rotateSphere { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     @keyframes rotateReverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
-    @keyframes pulseBar { 0% { height: 5px; } 100% { height: 30px; } }
+    @keyframes pulseBar { 0% { height: 5px; } 100% { height: 25px; } }
 </style>
 
 <div class="container text-center my-5 hologram-viewport">
@@ -77,10 +78,8 @@
     </h1>
     <p class="text-secondary mb-5">Système d'analyse visuelle et de topographie des stocks en temps réel</p>
 
-    <!-- 🔮 SPHÈRE HOLOGRAPHIQUE INTERACTIVE -->
-    <div class="d-flex justify-content-center align-items-center mb-4">
+    <div class="d-flex justify-content-center align-items-center mb-4" style="min-height: 220px;">
         <div id="hologram-core" class="hologram-sphere d-flex justify-content-center align-items-center">
-            <!-- Égaliseur à l'intérieur de la sphère -->
             <div id="audio-wave-container" class="audio-wave">
                 <div class="audio-bar" style="animation-delay: 0.1s"></div>
                 <div class="audio-bar" style="animation-delay: 0.3s"></div>
@@ -91,13 +90,11 @@
         </div>
     </div>
 
-    <!-- 📟 PANNEAU DE CONTRÔLE TEXTUEL ET DE SYNTHÈSE -->
     <div class="p-3 mb-4 text-start" style="background: rgba(30, 41, 59, 0.7); border-radius: 12px; min-height: 90px; border-left: 5px solid #0284c7;">
         <div id="statut-ia" class="fw-bold text-muted" style="font-size: 0.9rem;">🤖 ACCÈS SÉCURISÉ — PRÊT</div>
         <p id="reponse-ia-texte" class="mt-2 text-white fw-bold mb-0" style="font-size: 1.2rem; min-height: 30px;"></p>
     </div>
 
-    <!-- 🕹️ INTERRUPTEURS PHYSIQUES -->
     <div class="row justify-content-center g-3">
         <div class="col-md-5">
             <button id="btn-parler" class="btn btn-lg btn-info w-100 fw-bold text-uppercase py-3">
@@ -121,19 +118,72 @@
     const waveContainer = document.getElementById('audio-wave-container');
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
+    let audioCtx = null;
+    let analyser = null;
+    let dataArray = null;
+    let source = null;
+    let enEcoute = false;
+    let enReponseVocale = false;
+
+    // Initialisation de l'analyseur audio pour l'animation physique de la sphère
+    function initAudioAnalyser(stream) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+        analyser.fftSize = 32;
+        const bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+        
+        function animer() {
+            requestAnimationFrame(animer);
+            if (enEcoute || enReponseVocale) {
+                analyser.getByteFrequencyData(dataArray);
+                let total = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    total += dataArray[i];
+                }
+                let niveauVolume = total / dataArray.length;
+                let scale = 1 + (niveauVolume / 120);
+                
+                // Forçage de la déformation physique de la sphère et de son éclat néon
+                if (enEcoute) {
+                    hologramCore.style.transform = `scale(${scale})`;
+                    hologramCore.style.boxShadow = `0 0 ${40 + niveauVolume}px #f59e0b, inset 0 0 20px #f59e0b`;
+                } else if (enReponseVocale) {
+                    hologramCore.style.transform = `scale(${scale})`;
+                    hologramCore.style.boxShadow = `0 0 ${40 + niveauVolume}px #10b981, inset 0 0 20px #10b981`;
+                }
+            }
+        }
+        animer();
+    }
+
+    // Demande d'accès anticipé au micro pour calibrer l'animation
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => { initAudioAnalyser(stream); })
+        .catch(err => { console.log("Microphone non lié ou bloqué."); });
+    }
+
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.continuous = true;
+        recognition.continuous = false; // Mode séquentiel pour capturer une instruction précise
         recognition.interimResults = false;
         recognition.lang = 'fr-FR';
 
-        let enEcoute = false;
-
         btnParler.addEventListener('click', () => {
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+
             if (!enEcoute) {
-                // Changement visuel : Mode Écoute Active (Orange Pulsar)
-                hologramCore.style.boxShadow = "0 0 60px #f59e0b, inset 0 0 30px #f59e0b";
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                enEcoute = true;
+                enReponseVocale = false;
+
                 hologramCore.style.borderColor = "#f59e0b";
                 waveContainer.className = "audio-wave listening";
                 waveContainer.style.opacity = "1";
@@ -142,7 +192,6 @@
                 reponseTexte.innerText = "";
                 
                 recognition.start();
-                enEcoute = true;
                 btnParler.innerText = "🛑 Arrêter et Analyser";
                 btnParler.classList.replace('btn-info', 'btn-danger');
             } else {
@@ -154,7 +203,7 @@
             const indexDernier = event.results.length - 1;
             const texteUtilisateur = event.results[indexDernier][0].transcript.trim();
             
-            // Mode Traitement de données (Flash Vert)
+            enEcoute = false;
             statutIA.innerText = `🧠 CALCUL DU RADAR LOGISTIQUE POUR : "${texteUtilisateur}"`;
             hologramCore.style.boxShadow = "0 0 60px #10b981, inset 0 0 30px #10b981";
             hologramCore.style.borderColor = "#10b981";
@@ -178,12 +227,17 @@
 
                     reponseTexte.innerText = messageVocal;
                     
-                    // Exécution de la synthèse vocale
+                    // Lancement de la synthèse vocale physique
+                    enReponseVocale = true;
                     const voix = new SpeechSynthesisUtterance(messageVocal);
                     voix.lang = 'fr-FR';
-                    window.speechSynthesis.speak(voix);
                     
-                    reinitialiserInterface();
+                    voix.onend = function() {
+                        enReponseVocale = false;
+                        reinitialiserInterface();
+                    };
+
+                    window.speechSynthesis.speak(voix);
                 })
                 .catch(error => {
                     statutIA.innerText = "❌ ÉCHEC DE SYNC CENTRAL";
@@ -191,20 +245,24 @@
                 });
         };
 
-        recognition.onend = function() { reinitialiserInterface(); };
+        recognition.onerror = function() { reinitialiserInterface(); };
+        recognition.onend = function() { if (!enReponseVocale) reinitialiserInterface(); };
 
         function reinitialiserInterface() {
             enEcoute = false;
             btnParler.innerText = "🎙️ Activer le Micro Vocals";
             btnParler.classList.replace('btn-danger', 'btn-info');
+            hologramCore.style.transform = "scale(1)";
             hologramCore.style.boxShadow = "0 0 40px rgba(2, 132, 199, 0.4), inset 0 0 40px rgba(2, 132, 199, 0.2)";
             hologramCore.style.borderColor = "#38bdf8";
             waveContainer.style.opacity = "0";
             waveContainer.className = "audio-wave";
         }
+    } else {
+        statutIA.innerText = "❌ RECONNAISSANCE VOCALE NON SUPPORTÉE PAR CE NAVIGATEUR.";
     }
 
-    // Caméra instantanée
+    // Gestion native du capteur optique (Caméra)
     btnCamera.addEventListener('click', () => {
         statutIA.innerText = "📷 INITIALISATION DU CAPTEUR VISUEL OPTIQUE...";
         const inputCamera = document.createElement('input');
