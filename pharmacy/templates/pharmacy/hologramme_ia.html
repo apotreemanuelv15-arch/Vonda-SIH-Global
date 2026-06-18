@@ -146,7 +146,6 @@
                 let niveauVolume = total / dataArray.length;
                 let scale = 1 + (niveauVolume / 120);
                 
-                // Forçage de la déformation physique de la sphère et de son éclat néon
                 if (enEcoute) {
                     hologramCore.style.transform = `scale(${scale})`;
                     hologramCore.style.boxShadow = `0 0 ${40 + niveauVolume}px #f59e0b, inset 0 0 20px #f59e0b`;
@@ -159,7 +158,6 @@
         animer();
     }
 
-    // Demande d'accès anticipé au micro pour calibrer l'animation
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => { initAudioAnalyser(stream); })
@@ -168,8 +166,8 @@
 
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.continuous = false; // Mode séquentiel pour capturer une instruction précise
-        recognition.interimResults = false;
+        recognition.continuous = true; 
+        recognition.interimResults = true; // Permet de voir les mots en cours de dictée sur le mobile
         recognition.lang = 'fr-FR';
 
         btnParler.addEventListener('click', () => {
@@ -188,23 +186,43 @@
                 waveContainer.className = "audio-wave listening";
                 waveContainer.style.opacity = "1";
                 
-                statutIA.innerText = "👂 ÉCOUTE EN COURS... PARLEZ MAINTENANT";
-                reponseTexte.innerText = "";
+                statutIA.innerText = "👂 ÉCOUTE MOBILE ACTIVE (Parlez maintenant)...";
+                reponseTexte.innerText = "En attente de vos mots...";
                 
                 recognition.start();
-                btnParler.innerText = "🛑 Arrêter et Analyser";
+                btnParler.innerText = "🛑 Analyser immédiatement";
                 btnParler.classList.replace('btn-info', 'btn-danger');
             } else {
                 recognition.stop();
             }
         });
 
+        // Capture et affichage du texte en temps réel pendant que vous parlez
+        recognition.onletter = function(event) {
+            let interimTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (!event.results[i].isFinal) {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+            if(interimTranscript) {
+                reponseTexte.innerText = `[Capté : ${interimTranscript}...]`;
+            }
+        };
+
         recognition.onresult = function(event) {
             const indexDernier = event.results.length - 1;
             const texteUtilisateur = event.results[indexDernier][0].transcript.trim();
             
+            if (texteUtilisateur === "") {
+                statutIA.innerText = "⚠️ Aucun mot distinct détecté.";
+                reinitialiserInterface();
+                return;
+            }
+
             enEcoute = false;
-            statutIA.innerText = `🧠 CALCUL DU RADAR LOGISTIQUE POUR : "${texteUtilisateur}"`;
+            statutIA.innerText = `🧠 RADAR CENTRAL — RECHERCHE : "${texteUtilisateur}"`;
+            reponseTexte.innerText = "Analyse de la base de données...";
             hologramCore.style.boxShadow = "0 0 60px #10b981, inset 0 0 30px #10b981";
             hologramCore.style.borderColor = "#10b981";
             waveContainer.className = "audio-wave speaking";
@@ -212,7 +230,7 @@
             fetch(`/api/radar-ia/?medicament=${encodeURIComponent(texteUtilisateur)}`)
                 .then(response => response.json())
                 .then(data => {
-                    statutIA.innerText = "🔊 TRANSMISSION AUDIO EN COURS :";
+                    statutIA.innerText = "🔊 TRANSMISSION INTERFACE VOCALE :";
                     let messageVocal = "";
 
                     if (data.disponibilites_immédiates && data.disponibilites_immédiates.length > 0) {
@@ -220,14 +238,13 @@
                         messageVocal = `Le produit ${data.produit_recherche} est disponible immédiatement à ${local.pharmacie}. Stock : ${local.stock_cartons} cartons.`;
                     } else if (data.radar_arrivages_previsionnels && data.radar_arrivages_previsionnels.length > 0) {
                         let arrivage = data.radar_arrivages_previsionnels[0];
-                        messageVocal = `Alerte rupture. Cependant, le lot d'importation ${arrivage.numero_lot} est localisé en transit pour le dépôt de ${arrivage.depot_destination}.`;
+                        messageVocal = `Alerte rupture pour ${data.produit_recherche}. Logistique d'arrivage : Lot ${arrivage.numero_lot} en transit pour le dépôt de ${arrivage.depot_destination}.`;
                     } else {
-                        messageVocal = `Le produit ${texteUtilisateur} reste introuvable dans le réseau de Luanda.`;
+                        messageVocal = `Le produit ${texteUtilisateur} n'est pas répertorié dans les stocks actuels.`;
                     }
 
                     reponseTexte.innerText = messageVocal;
                     
-                    // Lancement de la synthèse vocale physique
                     enReponseVocale = true;
                     const voix = new SpeechSynthesisUtterance(messageVocal);
                     voix.lang = 'fr-FR';
@@ -240,7 +257,8 @@
                     window.speechSynthesis.speak(voix);
                 })
                 .catch(error => {
-                    statutIA.innerText = "❌ ÉCHEC DE SYNC CENTRAL";
+                    statutIA.innerText = "❌ ERREUR DE CONNEXION API CENTRAL";
+                    reponseTexte.innerText = "La liaison avec le serveur a échoué.";
                     reinitialiserInterface();
                 });
         };
@@ -259,7 +277,7 @@
             waveContainer.className = "audio-wave";
         }
     } else {
-        statutIA.innerText = "❌ RECONNAISSANCE VOCALE NON SUPPORTÉE PAR CE NAVIGATEUR.";
+        statutIA.innerText = "❌ RECONNAISSANCE VOCALE NON SUPPORTÉE.";
     }
 
     // Gestion native du capteur optique (Caméra)
