@@ -59,6 +59,10 @@
 </style>
 
 <div class="container text-center my-5 hologram-viewport">
+    <div class="text-end text-muted small mb-2" style="font-family: monospace; letter-spacing: 1px; font-size: 0.8rem;">
+        📡 Vonda Link: RECONSTRUCTION DU SYSTEME - COMPILATION DU 20 JUIN 2026
+    </div>
+    
     <h1 class="mb-2 text-white" style="font-weight: 800; letter-spacing: 1px;">
         Vonda SIH — Hologramme Vocal IA
     </h1>
@@ -109,7 +113,6 @@
     let enEcoute = false;
     let enReponseVocale = false;
 
-    // Force l'activation audio pour les mobiles au moment du clic
     function forcerActivationVoixMobile() {
         const tts = window.speechSynthesis;
         const u = new SpeechSynthesisUtterance('');
@@ -132,8 +135,8 @@
                 for (let i = 0; i < dataArray.length; i++) { total += dataArray[i]; }
                 let niveauVolume = total / dataArray.length;
                 
-                let scale = 1 + (niveauVolume / 60); // Plus sensible
-                let intensiteRemplissage = Math.min(niveauVolume * 2.5, 100); // Remplissage fort
+                let scale = 1 + (niveauVolume / 50); 
+                let intensiteRemplissage = Math.min(niveauVolume * 3, 100); 
 
                 if (enEcoute) {
                     hologramCore.style.transform = `scale(${scale})`;
@@ -157,8 +160,8 @@
 
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.continuous = false; // Mode séquentiel propre : écoute, s'arrête, analyse
-        recognition.interimResults = false; // Désactivé pour éliminer définitivement le bégaiement intermédiaire
+        recognition.continuous = false; 
+        recognition.interimResults = false; 
         recognition.lang = 'fr-FR';
 
         btnParler.addEventListener('click', () => {
@@ -173,7 +176,7 @@
                 hologramCore.style.borderColor = "#f59e0b";
                 waveContainer.style.opacity = "1";
                 statutIA.innerText = "👂 ÉCOUTE EN COURS... PARLEZ MAINTENANT";
-                reponseTexte.innerText = "Parlez maintenant (votre phrase s'affichera à la fin)...";
+                reponseTexte.innerText = "Prononcez clairement le nom d'un produit (ex: Paracétamol)...";
                 
                 recognition.start();
                 btnParler.innerText = "🛑 Analyser";
@@ -241,9 +244,10 @@
             hologramCore.style.borderColor = "#38bdf8";
             waveContainer.style.opacity = "0";
         }
+    } else {
+        statutIA.innerText = "❌ RECONNAISSANCE VOCALE NON SUPPORTÉE.";
     }
 
-    // Caméra native (100% stable)
     btnCamera.addEventListener('click', () => {
         statutIA.innerText = "📷 INITIALISATION DU CAPTEUR VISUEL OPTIQUE...";
         const inputCamera = document.createElement('input');
