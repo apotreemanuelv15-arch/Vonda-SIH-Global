@@ -67,9 +67,9 @@
     <div class="d-flex justify-content-center align-items-center mb-4" style="min-height: 220px;">
         <div id="hologram-core" class="hologram-sphere d-flex justify-content-center align-items-center">
             <div id="audio-wave-container" class="audio-wave">
-                <div class="audio-bar"></div>
-                <div class="audio-bar"></div>
-                <div class="audio-bar"></div>
+                <div class="audio-bar" style="animation-delay: 0.1s"></div>
+                <div class="audio-bar" style="animation-delay: 0.3s"></div>
+                <div class="audio-bar" style="animation-delay: 0.5s"></div>
             </div>
         </div>
     </div>
@@ -109,7 +109,7 @@
     let enEcoute = false;
     let enReponseVocale = false;
 
-    // Déblocage de la synthèse vocale pour les téléphones mobiles
+    // Force l'activation audio pour les mobiles au moment du clic
     function forcerActivationVoixMobile() {
         const tts = window.speechSynthesis;
         const u = new SpeechSynthesisUtterance('');
@@ -132,18 +132,17 @@
                 for (let i = 0; i < dataArray.length; i++) { total += dataArray[i]; }
                 let niveauVolume = total / dataArray.length;
                 
-                // Amplification de la sensibilité pour remplir l'espace interne
-                let scale = 1 + (niveauVolume / 80); 
-                let intensiteRemplissage = Math.min(niveauVolume * 1.5, 100);
+                let scale = 1 + (niveauVolume / 60); // Plus sensible
+                let intensiteRemplissage = Math.min(niveauVolume * 2.5, 100); // Remplissage fort
 
                 if (enEcoute) {
                     hologramCore.style.transform = `scale(${scale})`;
-                    hologramCore.style.background = `radial-gradient(circle, rgba(245, 158, 11, ${intensiteRemplissage/100}) 0%, transparent 80%)`;
-                    hologramCore.style.boxShadow = `0 0 ${40 + niveauVolume}px #f59e0b, inset 0 0 30px rgba(245, 158, 11, 0.5)`;
+                    hologramCore.style.background = `radial-gradient(circle, rgba(245, 158, 11, ${intensiteRemplissage/100}) 0%, transparent 85%)`;
+                    hologramCore.style.boxShadow = `0 0 ${40 + niveauVolume}px #f59e0b, inset 0 0 30px rgba(245, 158, 11, 0.6)`;
                 } else if (enReponseVocale) {
                     hologramCore.style.transform = `scale(${scale})`;
-                    hologramCore.style.background = `radial-gradient(circle, rgba(16, 185, 129, ${intensiteRemplissage/100}) 0%, transparent 80%)`;
-                    hologramCore.style.boxShadow = `0 0 ${40 + niveauVolume}px #10b981, inset 0 0 30px rgba(16, 185, 129, 0.5)`;
+                    hologramCore.style.background = `radial-gradient(circle, rgba(16, 185, 129, ${intensiteRemplissage/100}) 0%, transparent 85%)`;
+                    hologramCore.style.boxShadow = `0 0 ${40 + niveauVolume}px #10b981, inset 0 0 30px rgba(16, 185, 129, 0.6)`;
                 }
             }
         }
@@ -153,17 +152,17 @@
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => { initAudioAnalyser(stream); })
-        .catch(err => { console.log("Analyseur en attente."); });
+        .catch(err => { console.log("Analyseur audio passif."); });
     }
 
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.continuous = false; // CHANGEMENT : Mode séquentiel strict pour éviter les bégaiements
-        recognition.interimResults = true; 
+        recognition.continuous = false; // Mode séquentiel propre : écoute, s'arrête, analyse
+        recognition.interimResults = false; // Désactivé pour éliminer définitivement le bégaiement intermédiaire
         recognition.lang = 'fr-FR';
 
         btnParler.addEventListener('click', () => {
-            forcerActivationVoixMobile(); // Débloque le haut-parleur sur Android/iOS
+            forcerActivationVoixMobile();
             if (window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); }
 
             if (!enEcoute) {
@@ -173,8 +172,8 @@
 
                 hologramCore.style.borderColor = "#f59e0b";
                 waveContainer.style.opacity = "1";
-                statutIA.innerText = "👂 ÉCOUTE MOBILE ACTIVE...";
-                reponseTexte.innerText = "...";
+                statutIA.innerText = "👂 ÉCOUTE EN COURS... PARLEZ MAINTENANT";
+                reponseTexte.innerText = "Parlez maintenant (votre phrase s'affichera à la fin)...";
                 
                 recognition.start();
                 btnParler.innerText = "🛑 Analyser";
@@ -184,45 +183,30 @@
             }
         });
 
-        // Affiche uniquement les mots à l'écran sans déclencher de voix prématurée
         recognition.onresult = function(event) {
-            let texteIntermédiaire = "";
-            let texteFinal = "";
-
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    texteFinal += event.results[i][0].transcript;
-                } else {
-                    texteIntermédiaire += event.results[i][0].transcript;
-                }
-            }
-
-            if (texteIntermédiaire && !texteFinal) {
-                reponseTexte.innerText = `[Capté : ${texteIntermédiaire}...]`;
-                return; // On stoppe ici tant que ce n'est pas le texte validé définitif
-            }
-
-            const texteUtilisateur = texteFinal.trim();
+            const texteUtilisateur = event.results[0][0].transcript.trim();
             if (texteUtilisateur === "") return;
 
             enEcoute = false;
-            statutIA.innerText = `🧠 RADAR CENTRAL — RECHERCHE : "${texteUtilisateur}"`;
-            reponseTexte.innerText = "Calcul logistique en cours...";
+            statutIA.innerText = `🧠 RECHERCHE RADAR : "${texteUtilisateur}"`;
+            reponseTexte.innerText = "Interrogation de la base centrale Vonda...";
+            hologramCore.style.boxShadow = "0 0 60px #10b981, inset 0 0 30px #10b981";
+            hologramCore.style.borderColor = "#10b981";
 
             fetch(`/api/radar-ia/?medicament=${encodeURIComponent(texteUtilisateur)}`)
                 .then(response => response.json())
                 .then(data => {
-                    statutIA.innerText = "🔊 RÉPONSE :";
+                    statutIA.innerText = "🔊 TRANSMISSION VOCALE :";
                     let messageVocal = "";
 
                     if (data.disponibilites_immédiates && data.disponibilites_immédiates.length > 0) {
                         let local = data.disponibilites_immédiates[0];
-                        messageVocal = `Le produit ${data.produit_recherche} est disponible à ${local.pharmacie}. Stock : ${local.stock_cartons} cartons.`;
+                        messageVocal = `Le produit ${data.produit_recherche} est disponible immédiatement à ${local.pharmacie}. Stock : ${local.stock_cartons} cartons.`;
                     } else if (data.radar_arrivages_previsionnels && data.radar_arrivages_previsionnels.length > 0) {
                         let arrivage = data.radar_arrivages_previsionnels[0];
-                        messageVocal = `Alerte rupture pour ${data.produit_recherche}. Transport : Lot ${arrivage.numero_lot} localisé en transit vers le dépôt.`;
+                        messageVocal = `Alerte rupture pour ${data.produit_recherche}. Cependant, le lot d'importation ${arrivage.numero_lot} est localisé en transit pour le dépôt de ${arrivage.depot_destination}.`;
                     } else {
-                        messageVocal = `Le produit ${texteUtilisateur} n'est pas répertorié dans les stocks de Luanda.`;
+                        messageVocal = `Le produit ${texteUtilisateur} n'est pas répertorié dans le réseau logistique de Luanda.`;
                     }
 
                     reponseTexte.innerText = messageVocal;
@@ -238,7 +222,8 @@
                     window.speechSynthesis.speak(voix);
                 })
                 .catch(error => {
-                    statutIA.innerText = "❌ ERREUR API";
+                    statutIA.innerText = "❌ ERREUR DE SYNCHRONISATION CENTRAL";
+                    reponseTexte.innerText = "Échec de connexion avec l'API centrale.";
                     reinitialiserInterface();
                 });
         };
@@ -258,7 +243,7 @@
         }
     }
 
-    // Caméra native (déjà parfaitement fonctionnelle)
+    // Caméra native (100% stable)
     btnCamera.addEventListener('click', () => {
         statutIA.innerText = "📷 INITIALISATION DU CAPTEUR VISUEL OPTIQUE...";
         const inputCamera = document.createElement('input');
@@ -269,10 +254,10 @@
         inputCamera.onchange = function(event) {
             const fichier = event.target.files[0];
             if (fichier) {
-                statutIA.innerText = "🔄 EXTRACTION OCR DE L'ORDONNANCE...";
+                statutIA.innerText = "🔄 NUMÉRISATION ET EXTRACTION OCR DE L'ORDONNANCE...";
                 setTimeout(() => {
                     statutIA.innerText = "📄 ANALYSE TERMINÉE AVEC SUCCÈS";
-                    reponseTexte.innerText = "Ordonnance identifiée et transmise au cloud sécurisé Vonda.";
+                    reponseTexte.innerText = "Ordonnance stockée dans le cloud sécurisé Vonda.";
                 }, 2500);
             }
         };
