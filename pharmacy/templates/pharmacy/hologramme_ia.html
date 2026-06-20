@@ -125,7 +125,6 @@
     let enEcoute = false;
     let enReponseVocale = false;
 
-    // Initialisation de l'analyseur audio pour l'animation physique de la sphère
     function initAudioAnalyser(stream) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         analyser = audioCtx.createAnalyser();
@@ -167,7 +166,7 @@
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.continuous = true; 
-        recognition.interimResults = true; // Permet de voir les mots en cours de dictée sur le mobile
+        recognition.interimResults = true; 
         recognition.lang = 'fr-FR';
 
         btnParler.addEventListener('click', () => {
@@ -197,74 +196,75 @@
             }
         });
 
-        // Capture et affichage du texte en temps réel pendant que vous parlez
-        recognition.onletter = function(event) {
+        // RESTRUCTURÉ : Capture correcte en temps réel sans plantage
+        recognition.onresult = function(event) {
             let interimTranscript = '';
+            let texteFinal = '';
+
             for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (!event.results[i].isFinal) {
+                if (event.results[i].isFinal) {
+                    texteFinal += event.results[i][0].transcript;
+                } else {
                     interimTranscript += event.results[i][0].transcript;
                 }
             }
-            if(interimTranscript) {
+
+            // Affiche ce qui est capté en direct pendant que l'utilisateur parle
+            if (interimTranscript) {
                 reponseTexte.innerText = `[Capté : ${interimTranscript}...]`;
             }
-        };
 
-        recognition.onresult = function(event) {
-            const indexDernier = event.results.length - 1;
-            const texteUtilisateur = event.results[indexDernier][0].transcript.trim();
-            
-            if (texteUtilisateur === "") {
-                statutIA.innerText = "⚠️ Aucun mot distinct détecté.";
-                reinitialiserInterface();
-                return;
-            }
+            // Dès qu'une phrase complète et finale est validée
+            if (texteFinal.trim() !== "") {
+                const texteUtilisateur = texteFinal.trim();
+                recognition.stop(); // On arrête proprement l'écoute pour traiter
 
-            enEcoute = false;
-            statutIA.innerText = `🧠 RADAR CENTRAL — RECHERCHE : "${texteUtilisateur}"`;
-            reponseTexte.innerText = "Analyse de la base de données...";
-            hologramCore.style.boxShadow = "0 0 60px #10b981, inset 0 0 30px #10b981";
-            hologramCore.style.borderColor = "#10b981";
-            waveContainer.className = "audio-wave speaking";
+                enEcoute = false;
+                statutIA.innerText = `🧠 RADAR CENTRAL — RECHERCHE : "${texteUtilisateur}"`;
+                reponseTexte.innerText = "Analyse de la base de données...";
+                hologramCore.style.boxShadow = "0 0 60px #10b981, inset 0 0 30px #10b981";
+                hologramCore.style.borderColor = "#10b981";
+                waveContainer.className = "audio-wave speaking";
 
-            fetch(`/api/radar-ia/?medicament=${encodeURIComponent(texteUtilisateur)}`)
-                .then(response => response.json())
-                .then(data => {
-                    statutIA.innerText = "🔊 TRANSMISSION INTERFACE VOCALE :";
-                    let messageVocal = "";
+                fetch(`/api/radar-ia/?medicament=${encodeURIComponent(texteUtilisateur)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        statutIA.innerText = "🔊 TRANSMISSION INTERFACE VOCALE :";
+                        let messageVocal = "";
 
-                    if (data.disponibilites_immédiates && data.disponibilites_immédiates.length > 0) {
-                        let local = data.disponibilites_immédiates[0];
-                        messageVocal = `Le produit ${data.produit_recherche} est disponible immédiatement à ${local.pharmacie}. Stock : ${local.stock_cartons} cartons.`;
-                    } else if (data.radar_arrivages_previsionnels && data.radar_arrivages_previsionnels.length > 0) {
-                        let arrivage = data.radar_arrivages_previsionnels[0];
-                        messageVocal = `Alerte rupture pour ${data.produit_recherche}. Logistique d'arrivage : Lot ${arrivage.numero_lot} en transit pour le dépôt de ${arrivage.depot_destination}.`;
-                    } else {
-                        messageVocal = `Le produit ${texteUtilisateur} n'est pas répertorié dans les stocks actuels.`;
-                    }
+                        if (data.disponibilites_immédiates && data.disponibilites_immédiates.length > 0) {
+                            let local = data.disponibilites_immédiates[0];
+                            messageVocal = `Le produit ${data.produit_recherche} est disponible immédiatement à ${local.pharmacie}. Stock : ${local.stock_cartons} cartons.`;
+                        } else if (data.radar_arrivages_previsionnels && data.radar_arrivages_previsionnels.length > 0) {
+                            let arrivage = data.radar_arrivages_previsionnels[0];
+                            messageVocal = `Alerte rupture pour ${data.produit_recherche}. Logistique d'arrivage : Lot ${arrivage.numero_lot} en transit pour le dépôt de ${arrivage.depot_destination}.`;
+                        } else {
+                            messageVocal = `Le produit ${texteUtilisateur} n'est pas répertorié dans les stocks actuels.`;
+                        }
 
-                    reponseTexte.innerText = messageVocal;
-                    
-                    enReponseVocale = true;
-                    const voix = new SpeechSynthesisUtterance(messageVocal);
-                    voix.lang = 'fr-FR';
-                    
-                    voix.onend = function() {
-                        enReponseVocale = false;
+                        reponseTexte.innerText = messageVocal;
+                        
+                        enReponseVocale = true;
+                        const voix = new SpeechSynthesisUtterance(messageVocal);
+                        voix.lang = 'fr-FR';
+                        
+                        voix.onend = function() {
+                            enReponseVocale = false;
+                            reinitialiserInterface();
+                        };
+
+                        window.speechSynthesis.speak(voix);
+                    })
+                    .catch(error => {
+                        statutIA.innerText = "❌ ERREUR DE CONNEXION API CENTRAL";
+                        reponseTexte.innerText = "La liaison avec le serveur a échoué (Vérifiez votre forfait internet).";
                         reinitialiserInterface();
-                    };
-
-                    window.speechSynthesis.speak(voix);
-                })
-                .catch(error => {
-                    statutIA.innerText = "❌ ERREUR DE CONNEXION API CENTRAL";
-                    reponseTexte.innerText = "La liaison avec le serveur a échoué.";
-                    reinitialiserInterface();
-                });
+                    });
+            }
         };
 
         recognition.onerror = function() { reinitialiserInterface(); };
-        recognition.onend = function() { if (!enReponseVocale) reinitialiserInterface(); };
+        recognition.onend = function() { if (!enEcoute && !enReponseVocale) reinitialiserInterface(); };
 
         function reinitialiserInterface() {
             enEcoute = false;
