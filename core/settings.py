@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-import dj_database_url  # Importation essentielle pour Vercel Postgres
+import dj_database_url
 
 # Chemin de base du projet
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -8,7 +8,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Sécurité (En développement uniquement)
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-vonda-sih-key-pour-developpement')
 DEBUG = True
-ALLOWED_HOSTS = ['*', '.vercel.app', 'vonda-sih-global.vercel.app']
+
+ALLOWED_HOSTS = ['*', '.vercel.app', 'vonda-sih-global.vercel.app', 'localhost', '127.0.0.1']
 CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app', 'https://vonda-sih-global.vercel.app']
 
 # Applications installées
@@ -56,25 +57,36 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
-# --- CONFIGURATION DYNAMIQUE DE LA BASE DE DONNÉES (Préservée !) ---
+# --- CONFIGURATION DYNAMIQUE DE LA BASE DE DONNÉES (Sécurisée pour Vercel) ---
 if 'VERCEL' in os.environ:
-    # Moteur de production en ligne (Vercel + Neon Postgres)
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.environ.get('POSTGRES_URL'),
-            conn_max_age=600,
-            ssl_require=True
-        )
-    }
+    # On vérifie si une base Postgres externe est configurée
+    postgres_url = os.environ.get('POSTGRES_URL')
+    
+    if postgres_url:
+        # Moteur de production en ligne (Vercel + Neon Postgres)
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=postgres_url,
+                conn_max_age=600,
+                ssl_require=True
+            )
+        }
+    else:
+        # Repli de sécurité : Si Postgres n'est pas lié, on utilise SQLite dans le dossier temporaire /tmp de Vercel
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': os.path.join('/tmp', 'db.sqlite3'),
+            }
+        }
 else:
-    # Moteur de développement local (Votre clé Linux Mint)
+    # Moteur de développement local (Votre clé Linux)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-
 
 # Internationalisation
 LANGUAGE_CODE = 'fr-fr'
@@ -107,4 +119,3 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Redirections après connexion
 LOGIN_REDIRECT_URL = 'inventaire'
 LOGOUT_REDIRECT_URL = 'login'
-# Relance forcée du système visuel Vercel 2026
