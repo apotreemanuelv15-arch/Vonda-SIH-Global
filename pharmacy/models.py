@@ -214,3 +214,20 @@ class GuideModule(models.Model):
 
     def __str__(self):
         return self.titre_module
+
+# --- 6. CONGLOMÉRAT ET ACQUISITION AUTOMATISÉE INTERNATIONALE ---
+class PharmaciePartenaire(models.Model):
+    PAYS_CHOICES = [
+        ('ANGOLA', 'Angola (Luanda)'),
+        ('RDC', 'République Démocratique du Congo (Kinshasa)'),
+    ]
+
+    nom = models.CharField(max_length=255, verbose_name="Nom de la Pharmacie")
+    pays = models.CharField(max_length=20, choices=PAYS_CHOICES, default='ANGOLA', verbose_name="Pays")
+    zone_ville = models.CharField(max_length=100, help_text="Quartier à Luanda ou Commune à Kinshasa (ex: Gombe, Talatona)", verbose_name="Zone / Commune")
+    telephone_whatsapp = models.CharField(max_length=50, verbose_name="Numéro WhatsApp (Prospect)")
+    est_affiliee = models.BooleanField(default=False, verbose_name="A accepté le conglomérat")
+    date_contact = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.nom} - {self.zone_ville} ({self.get_pays_display()})"

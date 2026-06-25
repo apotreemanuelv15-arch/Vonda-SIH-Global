@@ -2,14 +2,15 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.templatetags.static import static
 from .models import (
-    Etablissement, Patient, Medicament, 
-    Consultation, Hospitalisation, Vente, 
-    TransactionBancaire, Prescription, ChirurgieAssistee, GuideModule
+    Etablissement, Patient, Medicament,
+    Consultation, Hospitalisation, Vente,
+    TransactionBancaire, Prescription, ChirurgieAssistee, GuideModule,
+    PharmaciePartenaire
 )
 
 # --- CONFIGURATION DE L'INTERFACE ADMIN (LOGO NET & TITRES) ---
 admin.site.site_header = format_html(
-    '<img src="{}" style="height: 50px; width: auto; margin-right: 10px; vertical-align: middle;"> Interface Vonda SIH Global',
+    '<img src="{}" style="height: 50px; width: auto; margin-right: 10px; vertical-align: middle;"> Interface Vonda SIH',
     static('images/icon-192x192.png')
 )
 admin.site.site_title = "Vonda SIH Admin"
@@ -21,20 +22,29 @@ def envoyer_campagne_sms(modeladmin, request, queryset):
     for patient in queryset:
         nom = patient.nom_complet
         if "CPN" in nom:
-            text_sms = "Vonda Sante : Rappel RDV. Maman, ne prenez aucun medicament ou plante sans avis medical. L'automedication nuit au bebe."
+            text_sms = "Vonda Sante : Rappel RDV. Maman, ne prenez aucun medicament ou plante sans avis medical. L'automedication est dangereuse."
         elif "VIH" in nom:
-            text_sms = "Vonda SIH : Votre sante est notre priorite. Rappel RDV demain. Attention : l'automedication peut perturber votre traitement."
+            text_sms = "Vonda SIH : Votre sante est notre priorite. Rappel RDV demain. Attention : l'automedication peut alterer votre traitement."
         elif "CNP" in nom:
-            text_sms = "Vonda SIH : Bonjour, rappel de votre consultation. Ne modifiez jamais votre traitement seul. Un expert vous attend."
+            text_sms = "Vonda SIH : Bonjour, rappel de votre consultation. Ne modifiez jamais votre traitement seul. Un medecin vous accompagne."
         else:
-            text_sms = f"Vonda SIH : Bonjour {nom}, votre medecin vous rappelle de suivre scrupuleusement votre ordonnance. Prenez soin de votre sante."
+            text_sms = f"Vonda SIH : Bonjour {nom}, votre medecin vous rappelle de suivre scrupuleusement votre ordonnance."
         
         patient.alerte_sms_envoyee = True
         patient.save()
-        
+
     modeladmin.message_user(request, f"📱 Campagne SMS envoyée avec succès pour {queryset.count()} patient(s) !")
 
-# --- PERSONNALISATION DES MODULES ---
+# --- 1. CONFIGURATION DU NOUVEAU MODULE PHARMACIES PARTENAIRES (RADAR) ---
+@admin.register(PharmaciePartenaire)
+class PharmaciePartenaireAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'zone_ville', 'pays', 'telephone_whatsapp', 'est_affiliee')
+    list_filter = ('pays', 'est_affiliee', 'zone_ville')
+    search_fields = ('nom', 'telephone_whatsapp')
+    list_editable = ('est_affiliee',)
+    list_per_page = 20
+
+# --- 2. CONFIGURATION DES MODULES HISTORIQUES DU SYSTÈME ---
 
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
@@ -58,12 +68,10 @@ class ChirurgieAssisteeAdmin(admin.ModelAdmin):
 
 @admin.register(Medicament)
 class MedicamentAdmin(admin.ModelAdmin):
-    # 1. Ajout de l'affichage en cartons calculé en temps réel à côté des unités !
-    list_display = ('id', 'nom', 'quantite_stock', 'affichage_stock_cartons', 'unites_par_carton', 'prix_unitaire', 'pays_origine')
+    list_display = ('id', 'nom', 'quantite_stock', 'affichage_stock_cartons', 'unites_par_carton', 'prix_unitaire')
     list_filter = ('conditionnement_achat', 'pays_origine', 'etablissement')
     search_fields = ('nom', 'pays_origine', 'numero_lot_import')
-    
-    # Méthode intelligente de calcul de conversion pour l'administration
+
     def affichage_stock_cartons(self, obj):
         """Calcule en temps réel le nombre exact de cartons et le reste à l'unité"""
         if obj.unites_par_carton and obj.unites_par_carton > 0:
@@ -73,10 +81,9 @@ class MedicamentAdmin(admin.ModelAdmin):
                 return f"📦 {cartons} carton(s) + {unites_restantes} u"
             return f"📦 {cartons} carton(s)"
         return "Conditionnement invalide"
-    
+
     affichage_stock_cartons.short_description = "Stock en Cartons (Calculé)"
 
-    # 2. L'organisation des champs à l'intérieur du formulaire d'ajout/modification
     fieldsets = (
         ('Informations Générales', {
             'fields': ('etablissement', 'nom', 'pays_origine')
@@ -105,7 +112,6 @@ class VenteAdmin(admin.ModelAdmin):
 
 @admin.register(Etablissement)
 class EtablissementAdmin(admin.ModelAdmin):
-    # Ajout d'une interface de visualisation propre pour l'adresse (Lieu de livraison de la police)
     list_display = ('id', 'nom', 'type_etablissement', 'adresse', 'telephone')
     search_fields = ('nom', 'adresse')
 
@@ -117,3 +123,4 @@ class GuideModuleAdmin(admin.ModelAdmin):
 admin.site.register(Consultation)
 admin.site.register(Hospitalisation)
 admin.site.register(TransactionBancaire)
+admin.site.register(Prescription)
