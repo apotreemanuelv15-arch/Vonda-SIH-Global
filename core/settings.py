@@ -7,7 +7,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Sécurité (En développement uniquement)
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-vonda-sih-key-pour-developpement')
-DEBUG = False
+
+# Passage automatique à False sur Vercel
+DEBUG = 'VERCEL' not in os.environ
 
 ALLOWED_HOSTS = ['*', '.vercel.app', 'vonda-sih-global.vercel.app', 'localhost', '127.0.0.1']
 CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app', 'https://vonda-sih-global.vercel.app']
@@ -27,7 +29,7 @@ INSTALLED_APPS = [
 # MIDDLEWARE (Ordre ajusté avec WhiteNoise juste après la sécurité)
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # <--- Ajout crucial pour le CSS en ligne
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -41,7 +43,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')], # Chemin vers vos fichiers HTML
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -57,13 +59,10 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
-# --- CONFIGURATION DYNAMIQUE DE LA BASE DE DONNÉES (Sécurisée pour Vercel) ---
+# --- CONFIGURATION DYNAMIQUE DE LA BASE DE DONNÉES ---
 if 'VERCEL' in os.environ:
-    # On vérifie si une base Postgres externe est configurée
     postgres_url = os.environ.get('POSTGRES_URL')
-    
     if postgres_url:
-        # Moteur de production en ligne (Vercel + Neon Postgres)
         DATABASES = {
             'default': dj_database_url.config(
                 default=postgres_url,
@@ -72,7 +71,6 @@ if 'VERCEL' in os.environ:
             )
         }
     else:
-        # Repli de sécurité : Si Postgres n'est pas lié, on utilise SQLite dans le dossier temporaire /tmp de Vercel
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.sqlite3',
@@ -80,7 +78,6 @@ if 'VERCEL' in os.environ:
             }
         }
 else:
-    # Moteur de développement local (Votre clé Linux)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -90,22 +87,17 @@ else:
 
 # Internationalisation
 LANGUAGE_CODE = 'fr-fr'
-TIME_ZONE = 'Africa/Luanda'  # Aligné sur votre fuseau horaire opérationnel
+TIME_ZONE = 'Africa/Luanda'
 USE_I18N = True
 USE_TZ = True
 
-# --- CONFIGURATION DES FICHIERS STATIQUES (Optimisée pour la production) ---
+# --- CONFIGURATION DES FICHIERS STATIQUES ---
 STATIC_URL = '/static/'
-
-# Dossiers où Django va chercher les images, CSS et JS en développement
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
-
-# Dossier de collecte pour la production
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Moteur de stockage WhiteNoise pour compresser et servir le design sur le Cloud
 if 'VERCEL' in os.environ:
     STORAGES = {
         "staticfiles": {
@@ -113,9 +105,11 @@ if 'VERCEL' in os.environ:
         },
     }
 
-# Configuration par défaut des IDs
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Redirections après connexion
 LOGIN_REDIRECT_URL = 'inventaire'
 LOGOUT_REDIRECT_URL = 'login'
+
+# --- PARAMÈTRE DE SÉCURITÉ POUR LES PROXYS (Placé sainement à la fin) ---
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
