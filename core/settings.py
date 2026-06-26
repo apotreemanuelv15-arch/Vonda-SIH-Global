@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Sécurité (En développement uniquement)
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-vonda-sih-key-pour-developpement')
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*', '.vercel.app', 'vonda-sih-global.vercel.app', 'localhost', '127.0.0.1']
 CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app', 'https://vonda-sih-global.vercel.app']
