@@ -6,5 +6,6 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
 application = get_wsgi_application()
 
-# Ligne CRUCIALE pour Vercel :
 app = application
+
+# Relance forcée du système visuel Vercel 2026
