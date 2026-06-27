@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Sécurité (En développement uniquement)
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-vonda-sih-key-pour-developpement')
 
-# Passage automatique à False sur Vercel
+# Passage automatique à False sur Vercel pour éviter les conflits d'environnement
 DEBUG = 'VERCEL' not in os.environ
 
 ALLOWED_HOSTS = ['*', '.vercel.app', 'vonda-sih-global.vercel.app', 'localhost', '127.0.0.1']
@@ -26,10 +26,10 @@ INSTALLED_APPS = [
     'billing',   # Votre application de facturation
 ]
 
-# MIDDLEWARE (Ordre ajusté avec WhiteNoise juste après la sécurité)
+# MIDDLEWARE (WhiteNoise placé juste après la sécurité)
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Crucial pour le CSS en production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -71,6 +71,7 @@ if 'VERCEL' in os.environ:
             )
         }
     else:
+        # Repli sur SQLite dans le dossier temporaire de Vercel
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.sqlite3',
@@ -98,10 +99,11 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+# Configuration WhiteNoise optimisée (évite le crash du manifeste manquant)
 if 'VERCEL' in os.environ:
     STORAGES = {
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
         },
     }
 
@@ -111,5 +113,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'inventaire'
 LOGOUT_REDIRECT_URL = 'login'
 
-# --- PARAMÈTRE DE SÉCURITÉ POUR LES PROXYS (Placé sainement à la fin) ---
+# --- EN-TÊTE DE SÉCURITÉ POUR LE PROXY SSL DE VERCEL ---
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
