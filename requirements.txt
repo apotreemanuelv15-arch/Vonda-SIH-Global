@@ -1,8 +1,8 @@
-Django==5.0.6
-django-cors-headers==4.3.1
-whitenoise==6.7.0
-groq==0.9.0
-twilio==9.1.3
-dj-database-url==2.1.0
-gunicorn==22.0.0
-requests==2.32.3
+Django>=5.0,<5.1
+django-cors-headers
+whitenoise
+groq
+twilio
+dj-database-url
+gunicorn
+requests
