@@ -28,4 +28,9 @@ urlpatterns = [
 
     # 📡 Webhook officiel pour intercepter et répondre aux messages WhatsApp Twilio
     path('whatsapp/webhook/', views.twilio_webhook, name='twilio_webhook'),
+    
+    # 📞 Webhook officiel pour intercepter et répondre aux Appels Vocaux
+    path('voice/webhook/', views.twilio_voice_webhook, name='twilio_voice_webhook'),
 ]
+
+

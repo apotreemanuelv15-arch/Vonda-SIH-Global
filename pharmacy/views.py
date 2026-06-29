@@ -439,3 +439,41 @@ def API_recherche_radar_ia(request):
         "radar_arrivages_previsionnels": arrivages_futurs,
         "total_sites_allies": len(resultats_officines) + len(arrivages_futurs)
     })
+    
+
+def twilio_voice_webhook(request):
+    """
+    📞 Webhook polyglotte pour répondre de vive voix selon le pays d'origine.
+    """
+    numero_appelant = request.POST.get('From', '')
+    
+    message = (
+        "Bonjour ! Vous êtes bien en ligne avec Vonda, l'intelligence artificielle du conglomérat S.I.H. "
+        "Le couloir vocal est en cours de déploiement. Laissez-nous un message sur WhatsApp. Merci !"
+    )
+    langue_voix = "fr-FR"
+
+    if numero_appelant.startswith('+49') or '49' in numero_appelant[:4]:
+        message = (
+            "Hallo! Sie sind mit Vonda verbunden, der künstlichen Intelligenz von S.I.H. "
+            "Emanuel ist im Moment nicht erreichbar. Bitte senden Sie uns eine Nachricht auf WhatsApp. Vielen Dank!"
+        )
+        langue_voix = "de-DE"
+
+    elif numero_appelant.startswith('+1'):
+        message = (
+            "Hello! You are connected to Vonda, the artificial intelligence of S.I.H. "
+            "Our voice channel is operating. Please leave us a message on WhatsApp. Thank you!"
+        )
+        langue_voix = "en-US"
+
+    twiml_response = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<Response>'
+        f'<Say language="{langue_voix}">'
+        f'{message}'
+        '</Say>'
+        '<Hangup/>'
+        '</Response>'
+    )
+    return HttpResponse(twiml_response, content_type='text/xml')  
