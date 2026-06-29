@@ -6,3 +6,4 @@ twilio
 dj-database-url
 gunicorn
 requests
+psycopg2-binary
