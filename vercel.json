@@ -15,5 +15,15 @@
       "src": "/(.*)",
       "dest": "index.py"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/radar-ia/",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/voice/webhook/",
+      "schedule": "0 0 * * *"
+    }
   ]
 }
