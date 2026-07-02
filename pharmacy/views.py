@@ -1,11 +1,11 @@
 import os
+from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
-from decimal import Decimal
 from groq import Groq
 from twilio.rest import Client
 from twilio.twiml.messaging_response import MessagingResponse
@@ -61,8 +61,8 @@ def passer_vente_gros(request):
                 quantite_vendue=quantite_cartons,
             )
 
-            # 3. Redirection directe vers la page de la facture exclusive
-            return redirect("afficher_facture_gros", username=None, vente_id=vente.id)
+            # 3. Redirection directe vers la page de la facture officielle
+            return redirect("afficher_facture_gros", vente_id=vente.id)
 
         except Exception as e:
             messages.error(request, f"Erreur d'exécution du module : {str(e)}")
@@ -126,7 +126,7 @@ def passer_vente_detail(request):
                 medicament=medicament,
                 type_vente='DETAIL',
                 quantite_vendue=quantite_unites,
-            )           
+            )
             # 4. Redirection forcée immédiate pour vider le formulaire
             return redirect("afficher_facture_detail", vente_id=vente.id)
 
@@ -142,6 +142,7 @@ def passer_vente_detail(request):
 @login_required
 def afficher_facture_detail(request, vente_id):
     """Génère le reçu au détail pour le dossier du patient"""
+    get_object_or_404(Vente, id=vente_id)
     vente = get_object_or_404(Vente, id=vente_id)
 
     # Calcul au détail : Unités vendues x Prix unitaire de base
@@ -203,7 +204,7 @@ def passer_transfert(request):
 
 
 @login_required
-def afficher_bon_transfert(request, vente_id, etab_id):                           
+def afficher_bon_transfert(request, vente_id, etab_id):
     """Génère le Bon de Convoi officiel pour le transport routier"""
     vente = get_object_or_404(Vente, id=vente_id)
     etablissement = get_object_or_404(Etablissement, id=etab_id)
@@ -228,7 +229,7 @@ def rapport_flux(request):
 
 @login_required
 def hologramme_ia_view(request):
-    """Affiche l'interface de l'Hologramme et gère l'interaction par Chat Textuel Groq"""                     
+    """Affiche l'interface de l'Hologramme et gère l'interaction par Chat Textuel Groq"""
     reponse_texte = None
 
     if request.method == "POST":
@@ -252,7 +253,7 @@ def hologramme_ia_view(request):
                         {"role": "user", "content": message_patient}
                     ],
                     temperature=0.4,
-                )                                       
+                )
                 brut_reponse = completion.choices[0].message.content
 
                 # 2. Traitement et extraction automatique du radar d'alertes
@@ -313,11 +314,11 @@ def twilio_webhook(request):
     Reçoit la phrase du patient, l'analyse via Groq et déclenche le réseau d'alertes.
     """
     response = MessagingResponse()
-    
+
     if request.method == "POST":
         message_patient = request.POST.get("Body", "").strip()
-        zone_patient = "Gombe" 
-        
+        zone_patient = "Gombe"
+
         if message_patient and groq_client:
             try:
                 # MODÈLE CORRIGÉ ET VALIDE SUR GROQ CLOUD
@@ -330,9 +331,9 @@ def twilio_webhook(request):
                                 "Tu es Vonda, l'intelligence artificielle du conglomérat SIH. "
                                 "Réponds de façon concise, professionnelle et chaleureuse. "
                                 "CONSIGNE DE TRADUCTION : Identifie précisément la langue ou le dialecte utilisé par l'utilisateur "
-                                "(Français, Anglais, Portugais, Swahili, Lingala, etc.) et réponds-lui systématiquement et à 100% dans cette même langue. "
-                                "Il est strictement interdit de répondre en français si l'utilisateur écrit en anglais, en swahili ou dans une autre langue. "
-                                "Si l'utilisateur recherche un médicament, ajoute obligatoirement ceci à la toute fin : [RECHERCHE: nom_du_produit]"
+                                "(Français, Anglais, Portugais, Swahili, Lingala, etc.) et réponds-lui systématiquement dans la même langue. "
+                                "Il est strictement interdit de répondre en français si l'utilisateur écrit en anglais ou portugais. "
+                                "Si l'utilisateur recherche un médicament, ajoute obligatoirement ceci à la toute fin : [RECHERCHE: nom_du_medicament]"
                             )
                         },
                         {"role": "user", "content": message_patient}
@@ -349,7 +350,7 @@ def twilio_webhook(request):
                         zone_ville__icontains=zone_patient,
                         est_affiliee=True
                     )
-                    
+
                     twilio_sid = os.environ.get("TWILIO_ACCOUNT_SID")
                     twilio_token = os.environ.get("TWILIO_AUTH_TOKEN")
 
@@ -368,15 +369,15 @@ def twilio_webhook(request):
                                 texte_whatsapp = (
                                     f"🚨 *VONDA RADAR ALERTE* 🚨\n\n"
                                     f"Direction {pharmacie.nom},\n"
-                                    f"Un patient recherche ce produit dans votre zone ({zone_patient}) : *{partie_medicament}*\n"
+                                    f"Un patient recherche ce produit dans votre zone ({zone_patient}) : *{partie_medicament}*"
                                 )
-                            
+
                             client_twilio.messages.create(
                                 body=texte_whatsapp,
                                 from_=twilio_number,
                                 to=f"whatsapp:+{pharmacie.telephone_whatsapp}"
                             )
-                    
+
                     response.message(texte_a_renvoyer)
                 else:
                     response.message(brut_reponse)
@@ -386,7 +387,7 @@ def twilio_webhook(request):
                 response.message("Vonda SIH : Une erreur est survenue lors de l'analyse.")
         else:
             response.message("Vonda SIH : Connexion IA indisponible.")
-            
+
     return HttpResponse(str(response), content_type='application/xml')
 
 
@@ -411,7 +412,7 @@ def API_recherche_radar_ia(request):
     for med in stocks_trouves:
         cartons = 0
         if med.unites_par_carton and med.unites_par_carton > 0:
-            cartons = med.quantite_stock // med.unites_par_carton          
+            cartons = med.quantite_stock // med.unites_par_carton
         if med.quantite_stock > 0:
             resultats_officines.append({
                 "pharmacie": med.etablissement.nom,
@@ -439,14 +440,14 @@ def API_recherche_radar_ia(request):
         "radar_arrivages_previsionnels": arrivages_futurs,
         "total_sites_allies": len(resultats_officines) + len(arrivages_futurs)
     })
-    
+
 
 def twilio_voice_webhook(request):
     """
     📞 Webhook polyglotte pour répondre de vive voix selon le pays d'origine.
     """
     numero_appelant = request.POST.get('From', '')
-    
+
     message = (
         "Bonjour ! Vous êtes bien en ligne avec Vonda, l'intelligence artificielle du conglomérat S.I.H. "
         "Le couloir vocal est en cours de déploiement. Laissez-nous un message sur WhatsApp. Merci !"
@@ -456,7 +457,7 @@ def twilio_voice_webhook(request):
     if numero_appelant.startswith('+49') or '49' in numero_appelant[:4]:
         message = (
             "Hallo! Sie sind mit Vonda verbunden, der künstlichen Intelligenz von S.I.H. "
-            "Emanuel ist im Moment nicht erreichbar. Bitte senden Sie uns eine Nachricht auf WhatsApp. Vielen Dank!"
+            "Emanuel ist im moment nicht erreichbar. Bitte senden Sie uns eine Nachricht auf WhatsApp. Vielen Dank!"
         )
         langue_voix = "de-DE"
 
@@ -476,4 +477,4 @@ def twilio_voice_webhook(request):
         '<Hangup/>'
         '</Response>'
     )
-    return HttpResponse(twiml_response, content_type='text/xml')  
+    return HttpResponse(twiml_response, content_type='text/xml')
