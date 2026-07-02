@@ -23,7 +23,7 @@
         background: transparent;
         border: 2px dashed #38bdf8;
         position: relative;
-        box-shadow: 0 0 40px rgba(56, 189, 248, 0.4), inset 0 0 40px rgba(56, 189, 248, 0.2);  
+        box-shadow: 0 0 40px rgba(56, 189, 248, 0.4), inset 0 0 40px rgba(56, 189, 248, 0.2);
         animation: rotateSphere 10s linear infinite;
         transition: transform 0.05s ease, box-shadow 0.05s ease, border-color 0.3s ease;
     }
@@ -48,8 +48,9 @@
         gap: 4px;
         height: 30px;
         opacity: 0;
-        transition: opacity 0.3s ease; 
+        transition: opacity 0.3s ease;
     }
+    
     .audio-bar {
         width: 4px;
         height: 5px;
@@ -57,9 +58,11 @@
         border-radius: 2px;
         transition: height 0.05s ease;
     }
+
     .listening .audio-bar {
         animation: pulseBar 0.8s ease infinite alternate;
     }
+    
     .speaking .audio-bar {
         background-color: #10b981;
         animation: pulseBar 0.5s ease infinite alternate;
@@ -96,7 +99,7 @@
         </div>
     </div>
 
-    <div class="p-3 mb-4 text-start" style="background: rgba(30, 41, 59, 0.7); border-radius: 12px; min-height: 90px; border-left: 4px solid #38bdf8;">
+    <div class="p-3 mb-4 text-start" style="background: rgba(30, 41, 59, 0.7); border-radius: 12px; min-height: 90px; border-left: 5px solid #0284c7;">
         <div id="statut-ia" class="fw-bold text-muted" style="font-size: 0.85rem;">🤖 ACCÈS SÉCURISÉ — PRÊT</div>
         <p id="reponse-ia-texte" class="mt-2 text-white fw-bold mb-0" style="font-size: 1.1rem; min-height: 30px;">
             {% if reponse_texte %}{{ reponse_texte }}{% endif %}
@@ -119,7 +122,7 @@
                 </div>
                 <div class="col-md-8">
                     <div class="input-group">
-                        <input type="text" name="message" id="input-message" class="form-control bg-dark text-white border-secondary" placeholder="Écrire à Vonda (Ex: Besoin urgent de Paracétamol)..." required>
+                        <input type="text" name="message" id="input-message" class="form-control bg-dark text-white border-secondary" placeholder="Écrire un message à Groq...">
                         <button class="btn btn-primary fw-bold px-3" type="submit" id="btn-envoyer-chat">
                             Écrire 🚀
                         </button>
@@ -150,80 +153,65 @@
     const btnEnvoyerChat = document.getElementById('btn-envoyer-chat');
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let audioCtx = null;
-    let analyser = null;
-    let dataArray = null;
-    let source = null;
-    let enEcoute = false;
-    let enReponseVocale = false;
+    let audioCtx = null, analyser = null, dataArray = null, source = null;
+    let enEcoute = false, enReponseVocale = false;
 
-    // Animation du formulaire de Chat Groq en tâche de fond
-    if (formChat) {
-        formChat.addEventListener('submit', function() {
-            btnEnvoyerChat.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
-            btnEnvoyerChat.disabled = true;
-            statutIA.innerText = "🧠 ANALYSE INTELLIGENTE DES INTENTIONS PAR GROQ...";
-            hologramCore.style.boxShadow = "0 0 50px #38bdf8, inset 0 0 25px #38bdf8";
-        });
-    }
-
+    // 1. Animation physique de la sphère cyberpunk via le micro
     function initAudioAnalyser(stream) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         analyser = audioCtx.createAnalyser();
         source = audioCtx.createMediaStreamSource(stream);
         source.connect(analyser);
         analyser.fftSize = 32;
-        const bufferLength = analyser.frequencyBinCount;
-        dataArray = new Uint8Array(bufferLength);
-
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+        
         function animer() {
             requestAnimationFrame(animer);
             if (enEcoute || enReponseVocale) {
                 analyser.getByteFrequencyData(dataArray);
-                let total = 0;
-                for (let i = 0; i < dataArray.length; i++) { total += dataArray[i]; }
+                let total = dataArray.reduce((a, b) => a + b, 0);
                 let niveauVolume = total / dataArray.length;
                 let scale = 1 + (niveauVolume / 120);
-
-                if (enEcoute) {
-                    hologramCore.style.transform = `scale(${scale})`;
-                    hologramCore.style.boxShadow = `0 0 ${40 + niveauVolume}px #f59e0b, inset 0 0 20px #f59e0b`;
-                } else if (enReponseVocale) {
-                    hologramCore.style.transform = `scale(${scale})`;
-                    hologramCore.style.boxShadow = `0 0 ${40 + niveauVolume}px #10b981, inset 0 0 20px #10b981`;
-                }
+                hologramCore.style.transform = `scale(${scale})`;
+                hologramCore.style.boxShadow = `0 0 ${40 + niveauVolume}px ${enEcoute ? '#f59e0b' : '#10b981'}, inset 0 0 20px ${enEcoute ? '#f59e0b' : '#10b981'}`;
             }
         }
         animer();
     }
 
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    if (navigator.mediaDevices?.getUserMedia) {
         navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => { initAudioAnalyser(stream); })
-        .catch(err => { console.log("Microphone non lié ou bloqué."); });
+        .then(stream => initAudioAnalyser(stream))
+        .catch(() => console.log("Microphone bloqué."));
     }
 
+    // 2. Traitement du Chat écrit Groq (Tâche de fond)
+    if (formChat) {
+        formChat.addEventListener('submit', () => {
+            btnEnvoyerChat.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            btnEnvoyerChat.disabled = true;
+            statutIA.innerText = "🧠 ANALYSE INTELLIGENTE DES INTENTIONS PAR GROQ...";
+            hologramCore.style.boxShadow = "0 0 50px #38bdf8, inset 0 0 25px #38bdf8";
+        });
+    }
+
+    // 3. Gestion de l'Interface Vocale (Reconnaissance + Synthèse)
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.continuous = true;
+        recognition.continuous = false; // Coupe le micro quand vous arrêtez de parler pour couper net le bégaiement
         recognition.interimResults = true;
         recognition.lang = 'fr-FR';
 
         btnParler.addEventListener('click', () => {
-            if (window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); }
-
+            if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
             if (!enEcoute) {
-                if (audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); }
-                enEcoute = true;
-                enReponseVocale = false;
-
+                if (audioCtx?.state === 'suspended') audioCtx.resume();
+                enEcoute = true; enReponseVocale = false;
                 hologramCore.style.borderColor = "#f59e0b";
                 waveContainer.className = "audio-wave listening";
                 waveContainer.style.opacity = "1";
-
-                statutIA.innerText = "👂 ÉCOUTE MOBILE ACTIVE (Parlez maintenant)...";
+                statutIA.innerText = "👂 ÉCOUTE MOBILE ACTIVE...";
                 reponseTexte.innerText = "En attente de vos mots...";
-
                 recognition.start();
                 btnParler.innerText = "🛑 Analyser immédiatement";
                 btnParler.classList.replace('btn-info', 'btn-danger');
@@ -233,67 +221,50 @@
         });
 
         recognition.onresult = function(event) {
-            let interimTranscript = '';
-            let texteFinal = '';
-
+            let interimTranscript = '', texteFinal = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    texteFinal += event.results[i][0].transcript;
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
-                }
+                if (event.results[i].isFinal) texteFinal += event.results[i][0].transcript;
+                else interimTranscript += event.results[i][0].transcript;
             }
-
-            if (interimTranscript) { reponseTexte.innerText = `[Capté : ${interimTranscript}...]`; }
-
+            if (interimTranscript) reponseTexte.innerText = `[Capté : ${interimTranscript}...]`;
+            
             if (texteFinal.trim() !== "") {
                 const texteUtilisateur = texteFinal.trim();
                 recognition.stop();
-
                 enEcoute = false;
                 statutIA.innerText = `🧠 RADAR CENTRAL — RECHERCHE : "${texteUtilisateur}"`;
                 reponseTexte.innerText = "Analyse de la base de données...";
-                hologramCore.style.boxShadow = "0 0 60px #10b981, inset 0 0 30px #10b981";
                 hologramCore.style.borderColor = "#10b981";
                 waveContainer.className = "audio-wave speaking";
 
+                // Appel vers l'API centrale validée (Code 200)
                 fetch(`/api/radar-ia/?medicament=${encodeURIComponent(texteUtilisateur)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        statutIA.innerText = "🔊 TRANSMISSION INTERFACE VOCALE :";
-                        let messageVocal = "";
-
-                        if (data.disponibilites_immédiates && data.disponibilites_immédiates.length > 0) {
-                            let local = data.disponibilites_immédiates[0];
-                            messageVocal = `Le produit ${data.produit_recherche} est disponible immédiatement à ${local.pharmacie}.`;
-                        } else if (data.radar_arrivages_previsionnels && data.radar_arrivages_previsionnels.length > 0) {
-                            let arrivage = data.radar_arrivages_previsionnels[0];
-                            messageVocal = `Alerte rupture pour ${data.produit_recherche}. Logistique d'arrivage en cours.`;
-                        } else {
-                            messageVocal = `Le produit ${texteUtilisateur} n'est pas répertorié dans les stocks actuels.`;
-                        }
-
-                        reponseTexte.innerText = messageVocal;
-
-                        enReponseVocale = true;
-                        const voix = new SpeechSynthesisUtterance(messageVocal);
-                        voix.lang = 'fr-FR';
-                        voix.onend = function() {
-                            enReponseVocale = false;
-                            reinitialiserInterface();
-                        };
-                        window.speechSynthesis.speak(voix);
-                    })
-                    .catch(error => {
-                        statutIA.innerText = "❌ ERREUR DE CONNEXION API CENTRAL";
-                        reponseTexte.innerText = "La liaison avec le serveur a échoué.";
-                        reinitialiserInterface();
-                    });
+                .then(res => res.json())
+                .then(data => {
+                    statutIA.innerText = "🔊 TRANSMISSION INTERFACE VOCALE :";
+                    let msg = `Le produit ${texteUtilisateur} n'est pas répertorié dans les stocks actuels.`;
+                    if (data.disponibilites_immédiates?.length > 0) {
+                        msg = `Le produit ${data.produit_recherche} est disponible à ${data.disponibilites_immédiates[0].pharmacie}. Stock : ${data.disponibilites_immédiates[0].stock_cartons} cartons.`;
+                    } else if (data.radar_arrivages_previsionnels?.length > 0) {
+                        msg = `Alerte rupture pour ${data.produit_recherche}. Logistique d'arrivage en cours vers le dépôt de ${data.radar_arrivages_previsionnels[0].depot_destination}.`;
+                    }
+                    
+                    reponseTexte.innerText = msg;
+                    enReponseVocale = true;
+                    const voix = new SpeechSynthesisUtterance(msg);
+                    voix.lang = 'fr-FR';
+                    voix.onend = () => { enReponseVocale = false; reinitialiserInterface(); };
+                    window.speechSynthesis.speak(voix);
+                })
+                .catch(() => {
+                    statutIA.innerText = "❌ ERREUR DE CONNEXION API CENTRAL";
+                    reinitialiserInterface();
+                });
             }
         };
 
-        recognition.onerror = function() { reinitialiserInterface(); };
-        recognition.onend = function() { if (!enEcoute && !enReponseVocale) reinitialiserInterface(); };
+        recognition.onerror = () => reinitialiserInterface();
+        recognition.onend = () => { if (!enEcoute && !enReponseVocale) reinitialiserInterface(); };
 
         function reinitialiserInterface() {
             enEcoute = false;
@@ -301,7 +272,7 @@
             btnParler.classList.replace('btn-danger', 'btn-info');
             hologramCore.style.transform = "scale(1)";
             hologramCore.style.boxShadow = "0 0 40px rgba(2, 132, 199, 0.4), inset 0 0 40px rgba(2, 132, 199, 0.2)";
-            hologramCore.style.borderColor = "#38bdf8";  
+            hologramCore.style.borderColor = "#38bdf8";
             waveContainer.style.opacity = "0";
             waveContainer.className = "audio-wave";
         }
@@ -309,27 +280,21 @@
         statutIA.innerText = "❌ RECONNAISSANCE VOCALE NON SUPPORTÉE.";
     }
 
-    // Gestion native du capteur optique (Caméra)
+    // 4. Gestion du Capteur Optique (Caméra)
     btnCamera.addEventListener('click', () => {
         statutIA.innerText = "📷 INITIALISATION DU CAPTEUR VISUEL OPTIQUE...";
         const inputCamera = document.createElement('input');
-        inputCamera.type = 'file';
-        inputCamera.accept = 'image/*';
-        inputCamera.capture = 'environment';
+        inputCamera.type = 'file'; inputCamera.accept = 'image/*'; inputCamera.capture = 'environment';
         inputCamera.click();
-
-        inputCamera.onchange = function(event) {
-            const fichier = event.target.files[0];
-            if (fichier) {
+        inputCamera.onchange = function(e) {
+            if (e.target.files[0]) {
                 statutIA.innerText = "🔄 NUMÉRISATION ET EXTRACTION OCR DE L'ORDONNANCE...";
                 hologramCore.style.boxShadow = "0 0 60px #a855f7, inset 0 0 30px #a855f7";
                 hologramCore.style.borderColor = "#a855f7";
-
                 setTimeout(() => {
-                    statutIA.innerText = "📄 ANALYSE TERMINÉE AVEC SUCCÈS";  
-                    reponseTexte.innerText = "Ordonnance stockée dans le cloud sécurisé. Molécules identifiées et transmises au radar.";
-                    hologramCore.style.boxShadow = "0 0 40px rgba(2, 132, 199, 0.4)";
-                    hologramCore.style.borderColor = "#38bdf8";
+                    statutIA.innerText = "📄 ANALYSE TERMINÉE AVEC SUCCÈS";
+                    reponseTexte.innerText = "Ordonnance stockée dans le cloud sécurisé. Les molécules ont été identifiées.";
+                    reinitialiserInterface();
                 }, 2500);
             }
         };
