@@ -21,7 +21,7 @@ urlpatterns = [
     path('rapport-flux/', views.rapport_flux, name='rapport-flux'),
 
     # 🔮 Interface Graphique de l'Hologramme IA (Web interne)
-    path('hologramme-ia/', views.hologramme_ia_view, name='hologramme_ia'),
+    path('hologramme-ia/', views.hologramme_ia_view, name='hologramme_ia_view'),
 
     # 📡 API d'arrière-plan pour la recherche Radar Topographique
     path('api/radar-ia/', views.API_recherche_radar_ia, name='api_recherche_radar_ia'),
