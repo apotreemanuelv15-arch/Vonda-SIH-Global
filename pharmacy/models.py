@@ -23,10 +23,8 @@ class Patient(models.Model):
     TYPES_SUIVI = [('GEN', 'Général'), ('CPN', 'Accouchement/CPN'), ('VIH', 'Suivi VIH')]
     nom_complet = models.CharField(max_length=200)
     telephone = models.CharField(max_length=20, blank=True)
-    type_suivi = models.CharField(max_length=3, choices=TYPES_SUIVI, default='GEN')
-    date_prochain_rdv = models.DateField(null=True, blank=True)
-    alerte_sms_envoyee = models.BooleanField(default=False)
-
+    type_suivi = models.CharField(max_length=3, choices=TYPES_SUIVI, default='GEN')          
+    
     def __str__(self):
         return self.nom_complet
 
@@ -45,13 +43,13 @@ class ChirurgieAssistee(models.Model):
     """Collaboration chirurgicale robotique et IA à distance"""
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     chirurgien_local = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chirurgies_locales')
-    expert_distance = models.CharField(max_length=200) 
+    expert_distance = models.CharField(max_length=200)
     type_intervention = models.CharField(max_length=255)
     statut_robotique = models.CharField(max_length=100, default="Prêt / Connecté")
     flux_video_ia = models.URLField(blank=True, help_text="Lien du flux vidéo assisté par IA")
     date_intervention = models.DateTimeField()
 
-    def __str__(self):
+    def __str__(self):                                   
         return f"Chirurgie IA : {self.patient.nom_complet} ({self.type_intervention})"
 
 # --- 3. PHARMACIE ET LUTTE CONTRE L'AUTOMÉDICATION (AUTOMATISATION IA ACTIVE) ---
@@ -59,7 +57,7 @@ class Medicament(models.Model):
     UNITE = 'UNITE'
     CARTON = 'CARTON'
     PALETTE = 'PALETTE'
-    
+
     TYPE_EMBALLAGE_CHOICES = [
         (UNITE, 'Unité (Boîte/Flacon)'),
         (CARTON, 'Carton de Gros'),
@@ -68,18 +66,15 @@ class Medicament(models.Model):
 
     etablissement = models.ForeignKey(Etablissement, on_delete=models.CASCADE)
     nom = models.CharField(max_length=100)
-    
     quantite_stock = models.IntegerField(default=0, help_text="Quantité totale disponible en unités de détail")
     conditionnement_achat = models.CharField(max_length=20, choices=TYPE_EMBALLAGE_CHOICES, default=UNITE)
-    unites_par_carton = models.IntegerField(default=1, help_text="Combien d'unités individuelles contient un carton d'importation")
-
-    pays_origine = models.CharField(max_length=100, default="International", help_text="Pays de fabrication (Inde, France, Chine, etc.)")
+    unites_par_carton = models.IntegerField(default=1, help_text="Combien d'unités individuelles contient un carton")
+    pays_origine = models.CharField(max_length=100, default="International", help_text="Pays de fabrication")
     numero_lot_import = models.CharField(max_length=100, blank=True, null=True, help_text="Numéro de lot douanier / international")
-    cout_fret_douane = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Frais de transport et douane appliqués à ce lot")
-
+    cout_fret_douane = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Frais de transport et douane")
     prix_unitaire = models.DecimalField(max_digits=10, decimal_places=2, help_text="Prix de vente standard à l'unité")
-    prix_grossiste_carton = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Prix spécial par carton pour les dépôts intégrés")
-
+    prix_grossiste_carton = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Prix de vente en gros")
+    
     # Champs gérés automatiquement par l'IA
     posologie_standard_ia = models.TextField(blank=True, help_text="Généré automatiquement par l'IA si laissé vide")
     contre_indications = models.TextField(blank=True, help_text="Généré automatiquement par l'IA si laissé vide")
@@ -94,25 +89,22 @@ class Medicament(models.Model):
         return 0
 
     def save(self, *args, **kwargs):
-        # Déclenchement du Cerveau IA si les champs sont vides et qu'une clé API est disponible
         api_key_gemini = os.environ.get("GEMINI_API_KEY")
-        
+
         if api_key_gemini and (not self.posologie_standard_ia or not self.contre_indications):
             try:
-                # Initialisation du client avec le nouveau SDK google-genai
                 client = genai.Client(api_key=api_key_gemini)
-                
+
                 if not self.posologie_standard_ia:
-                    prompt_poso = f"Donne uniquement la posologie médicale standard, très concise (max 2 phrases), pour la molécule ou le médicament suivant : {self.nom}. Ajoute une formule stricte contre l'automédication à la fin."
+                    prompt_poso = f"Donne uniquement la posologie médicale standard, très concise (max 2 phrases), pour : {self.nom}"
                     response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt_poso)
                     self.posologie_standard_ia = response.text.strip()
-                    
+
                 if not self.contre_indications:
-                    prompt_contra = f"Donne uniquement la liste des contre-indications majeures (les plus dangereuses), sous forme de puces concises, pour : {self.nom}."
+                    prompt_contra = f"Donne uniquement la liste des contre-indications majeures (les plus dangereuses), très concises, pour : {self.nom}"
                     response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt_contra)
                     self.contre_indications = response.text.strip()
             except Exception as e:
-                # Sécurité : Si l'API échoue (réseau, quota), le système enregistre sans bloquer la pharmacie
                 if not self.posologie_standard_ia:
                     self.posologie_standard_ia = "Indisponible temporairement (Erreur IA)."
                 if not self.contre_indications:
@@ -129,7 +121,7 @@ class Prescription(models.Model):
 class Vente(models.Model):
     TYPES_VENTE = [('DETAIL', 'Vente au Détail'), ('GROS', 'Vente en Gros (Carton)')]
 
-    medicament = models.ForeignKey(Medicament, on_delete=models.CASCADE)
+    medicament = models.ForeignKey(Medicament, on_delete=models.CASCADE)                                                 
     type_vente = models.CharField(max_length=10, choices=TYPES_VENTE, default='DETAIL')
     quantite_vendue = models.PositiveIntegerField(help_text="Nombre d'unités si Détail, nombre de cartons si Gros")
     prix_total = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
@@ -142,11 +134,11 @@ class Vente(models.Model):
             unites_demandees = self.quantite_vendue * self.medicament.unites_par_carton
 
         if self.medicament.quantite_stock < unites_demandees:
-            raise ValidationError(f"Stock insuffisant pour {self.medicament.nom}. Requis : {unites_demandees} u, Disponible : {self.medicament.quantite_stock} u.")
+            raise ValidationError(f"Stock insuffisant pour {self.medicament.nom}. Requis : {unites_demandees} u")
 
     def save(self, *args, **kwargs):
         self.clean()
-        
+
         if self.type_vente == 'GROS' and self.medicament.prix_grossiste_carton:
             self.prix_total = self.medicament.prix_grossiste_carton * self.quantite_vendue
             unites_a_deduire = self.quantite_vendue * self.medicament.unites_par_carton
@@ -155,19 +147,19 @@ class Vente(models.Model):
                 self.prix_total = (self.medicament.prix_unitaire * self.medicament.unites_par_carton) * self.quantite_vendue
                 unites_a_deduire = self.quantite_vendue * self.medicament.unites_par_carton
             else:
-                self.prix_total = self.medicament.prix_unitaire * self.quantite_vendue
+                self.prix_total = self.medicament.prix_unitaire * self.quantite_vendue                      
                 unites_a_deduire = self.quantite_vendue
-        
+
         self.medicament.quantite_stock -= unites_a_deduire
         self.medicament.save()
-        
+
         is_new = self.pk is None
         super().save(*args, **kwargs)
-        
+
         if is_new:
             taux_redevance = 0.05
             montant_redevance = float(self.prix_total) * taux_redevance
-            
+
             TransactionBancaire.objects.create(
                 etablissement=self.medicament.etablissement,
                 montant_brut=self.prix_total,
@@ -181,7 +173,7 @@ class Vente(models.Model):
 # --- 4. HOSPITALISATION ET FINANCES ---
 class Hospitalisation(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
-    date_entree = models.DateTimeField()
+    date_entree = models.DateTimeField()                                                   
     date_sortie = models.DateTimeField(null=True, blank=True)
     motif_sejour = models.CharField(max_length=200)
     prix_par_jour = models.DecimalField(max_digits=10, decimal_places=2)
@@ -207,7 +199,7 @@ class TransactionBancaire(models.Model):
         return f"Transaction {self.reference_audit} - Redevance Vonda: {self.redevance_vonda} Kz"
 
 # --- 5. GUIDE D'AIDE ET DOCUMENTATION ---
-class GuideModule(models.Model):
+class GuideModule(models.Model):                                                
     titre_module = models.CharField(max_length=100)
     instructions = models.TextField()
     video_url = models.URLField(blank=True, null=True)
@@ -224,10 +216,25 @@ class PharmaciePartenaire(models.Model):
 
     nom = models.CharField(max_length=255, verbose_name="Nom de la Pharmacie")
     pays = models.CharField(max_length=20, choices=PAYS_CHOICES, default='ANGOLA', verbose_name="Pays")
-    zone_ville = models.CharField(max_length=100, help_text="Quartier à Luanda ou Commune à Kinshasa (ex: Gombe, Talatona)", verbose_name="Zone / Commune")
+    zone_ville = models.CharField(max_length=100, help_text="Quartier à Luanda ou Commune à Kinshasa (ex: Gombe, Talatona)")
     telephone_whatsapp = models.CharField(max_length=50, verbose_name="Numéro WhatsApp (Prospect)")
     est_affiliee = models.BooleanField(default=False, verbose_name="A accepté le conglomérat")
     date_contact = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.nom} - {self.zone_ville} ({self.get_pays_display()})"
+
+# --- 7. RADAR DE VEILLE ET COLLECTE D'INFORMATIONS OFFICIELLES ---
+class ArticleVeille(models.Model):
+    titre = models.CharField(max_length=255)
+    lien = models.URLField(unique=True)
+    description = models.TextField(blank=True, null=True)
+    source = models.CharField(max_length=100)
+    date_publication = models.DateTimeField()
+    date_collecte = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date_publication']
+
+    def __str__(self):
+        return f"[{self.source}] {self.titre}"

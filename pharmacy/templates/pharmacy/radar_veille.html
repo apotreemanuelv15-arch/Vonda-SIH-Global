@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* Style des Badges d'Alertes Sanitaires Mondiales */
+    .badge-alerte {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 30px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        margin-right: 6px;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: 1px solid transparent;
+    }
+    .badge-pandemie {
+        background-color: #f3e5f5;
+        color: #8e24aa;
+        border-color: #e1bee7;
+        animation: pulse-purple 2.5s infinite;
+    }
+    .badge-ebola {
+        background-color: #ffeef0;
+        color: #d81b60;
+        border-color: #ffcdd2;
+        animation: pulse-red 2s infinite;
+    }
+    .badge-cholera {
+        background-color: #fffde7;
+        color: #f57f17;
+        border-color: #fff9c4;
+    }
+    .badge-globale {
+        background-color: #e0f2f1;
+        color: #00695c;
+        border-color: #b2dfdb;
+    }
+    .badge-conflit {
+        background-color: #efebe9;
+        color: #4e342e;
+        border-color: #d7ccc8;
+    }
+    .badge-veille {
+        background-color: #eceff1;
+        color: #37474f;
+        border-color: #cfd8dc;
+    }
+    .badge-pays {
+        background-color: #e3f2fd;
+        color: #0d47a1;
+        border-color: #bbdefb;
+    }
+
+    /* Animations d'attention pour les urgences vitales */
+    @keyframes pulse-red {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.03); box-shadow: 0 0 8px rgba(216, 27, 96, 0.3); }
+        100% { transform: scale(1); }
+    }
+    @keyframes pulse-purple {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.03); box-shadow: 0 0 8px rgba(142, 36, 170, 0.3); }
+        100% { transform: scale(1); }
+    }
+</style>
+
+<div class="container mt-4">
+    <!-- En-tête du Tableau de Bord -->
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <div>
+            <h1 class="h2 text-primary">📡 Vonda Radar Veille</h1>
+            <p class="text-muted mb-0">Collecte automatisée d'informations sanitaires et logistiques transfrontalières.</p>
+        </div>
+
+        <!-- Bouton de synchronisation forcée -->
+        <form method="POST" action="{% url 'radar_veille' %}">
+            {% csrf_token %}
+            <button type="submit" name="actualiser" class="btn btn-success d-flex align-items-center gap-2">
+                <span>🔄</span> Actualiser le Radar
+            </button>
+        </form>
+    </div>
+
+    <!-- Zone d'affichage des messages Django Flash -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Liste des Dépêches Captées -->
+    <div class="row">
+        {% if articles %}
+            {% for article in articles %}
+                <div class="col-md-12 mb-3">
+                    <div class="card shadow-sm border-start border-primary border-4">
+                        <div class="card-body">
+                            
+                            <!-- 🌐 Système de Filtrage et d'Alerte Sanitaire Mondiale -->
+                            <div class="mb-2">
+                                <!-- 1. Détection des Pathogènes Majeurs et Virus à potentiel pandémique -->
+                                {% if "corona" in article.description|lower or "covid" in article.description|lower or "wuhan" in article.description|lower or "corona" in article.titre|lower or "covid" in article.titre|lower %}
+                                    <span class="badge-alerte badge-pandemie">☣️ PANDÉMIE : CORONAVIRUS / SRAS</span>
+                                {% elif "ebola" in article.description|lower or "ebola" in article.titre|lower %}
+                                    <span class="badge-alerte badge-ebola">🚨 URGENCE : FIEVRE EBOLA</span>
+                                {% elif "choléra" in article.description|lower or "cholera" in article.description|lower or "cholera" in article.titre|lower or "choléra" in article.titre|lower %}
+                                    <span class="badge-alerte badge-cholera">⚠️ ÉPIDÉMIE : CHOLÉRA</span>
+                                {% elif "mpox" in article.description|lower or "variole" in article.description|lower or "mpox" in article.titre|lower %}
+                                    <span class="badge-alerte badge-pandemie">🐵 ALERTE : MPOX</span>
+                                {% elif "grippe" in article.description|lower or "h5n1" in article.description|lower or "grippe" in article.titre|lower %}
+                                    <span class="badge-alerte badge-globale">🧬 ALERTE VIRALE : GRIPPE HORS-NORME</span>
+                                {% else %}
+                                    <span class="badge-alerte badge-veille">📡 VEILLE SANITAIRE</span>
+                                {% endif %}
+
+                                <!-- 2. Impact Sécuritaire et Logistique Mondial (Guerre, Instabilité) -->
+                                {% if "m23" in article.description|lower or "guerre" in article.description|lower or "combat" in article.description|lower or "bombardement" in article.description|lower or "conflit" in article.description|lower or "guerre" in article.titre|lower or "conflit" in article.titre|lower %}
+                                    <span class="badge-alerte badge-conflit">⚔️ IMPACT LOGISTIQUE : CONFLIT / INSTABILITÉ</span>
+                                {% endif %}
+
+                                <!-- 3. Géo-localisation Dynamique (RDC, Soudan, Chine, Angola, etc.) -->
+                                {% if "rdc" in article.description|lower or "congo" in article.description|lower or "rdc" in article.titre|lower or "congo" in article.titre|lower %}
+                                    <span class="badge-alerte badge-pays">📍 Zone : RDC</span>
+                                {% elif "soudan" in article.description|lower or "soudan" in article.titre|lower %}
+                                    <span class="badge-alerte badge-pays">📍 Zone : Soudan</span>
+                                {% elif "chine" in article.description|lower or "china" in article.description|lower or "wuhan" in article.description|lower %}
+                                    <span class="badge-alerte badge-pays">📍 Zone : Chine</span>
+                                {% elif "angola" in article.description|lower or "luanda" in article.description|lower %}
+                                    <span class="badge-alerte badge-pays">📍 Zone : Angola</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-start mt-2">
+                                <h5 class="card-title text-dark mb-1">{{ article.titre }}</h5>
+                                <span class="badge bg-secondary">{{ article.source }}</span>
+                            </div>
+                            
+                            <p class="card-text text-muted small mb-2">
+                                Published : {{ article.date_publication|date:"d M Y à H:i" }} —
+                                <span class="text-info">Capté le {{ article.date_collecte|date:"d M Y" }}</span>
+                            </p>
+                            
+                            <p class="card-text text-secondary">{{ article.description|striptags }}</p>
+                            
+                            <a href="{{ article.lien }}" target="_blank" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+                                Lire la dépêche officielle ↗
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-warning text-center py-4" role="alert">
+                    <p class="mb-2 fs-5">📡 Le radar est actuellement vide ou en attente d'initialisation.</p>
+                    <p class="small text-muted mb-0">Cliquez sur le bouton <strong>"Actualiser le Radar"</strong> ci-dessus pour lancer la veille.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

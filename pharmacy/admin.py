@@ -5,12 +5,12 @@ from .models import (
     Etablissement, Patient, Medicament,
     Consultation, Hospitalisation, Vente,
     TransactionBancaire, Prescription, ChirurgieAssistee, GuideModule,
-    PharmaciePartenaire
+    PharmaciePartenaire, ArticleVeille
 )
 
 # --- CONFIGURATION DE L'INTERFACE ADMIN (LOGO NET & TITRES) ---
 admin.site.site_header = format_html(
-    '<img src="{}" style="height: 50px; width: auto; margin-right: 10px; vertical-align: middle;"> Interface Vonda SIH',
+    '<img src="{}" style="height: 50px; width: auto; margin-right: 10px; vertical-align: middle;"> Interface Vonda SIH',    
     static('images/icon-192x192.png')
 )
 admin.site.site_title = "Vonda SIH Admin"
@@ -21,16 +21,18 @@ admin.site.index_title = "Tableau de Bord de l'Architecte"
 def envoyer_campagne_sms(modeladmin, request, queryset):
     for patient in queryset:
         nom = patient.nom_complet
-        if "CPN" in nom:
-            text_sms = "Vonda Sante : Rappel RDV. Maman, ne prenez aucun medicament ou plante sans avis medical. L'automedication est dangereuse."
-        elif "VIH" in nom:
-            text_sms = "Vonda SIH : Votre sante est notre priorite. Rappel RDV demain. Attention : l'automedication peut alterer votre traitement."
-        elif "CNP" in nom:
-            text_sms = "Vonda SIH : Bonjour, rappel de votre consultation. Ne modifiez jamais votre traitement seul. Un medecin vous accompagne."
+        suivi = patient.type_suivi
+
+        # Ciblage rigoureux basé sur le type de suivi médical réel
+        if suivi == "CPN":
+            text_sms = f"Vonda Sante : Rappel RDV. Maman, ne prenez aucun medicament ou plante sans avis medical. L'automedication nuit gravement au bebe."
+        elif suivi == "VIH":                              
+            text_sms = f"Vonda SIH : Votre sante est notre priorite. Rappel RDV demain. Attention : l'automedication peut perturber l'efficacite de vos ARV."
         else:
-            text_sms = f"Vonda SIH : Bonjour {nom}, votre medecin vous rappelle de suivre scrupuleusement votre ordonnance."
+            text_sms = f"Vonda SIH : Bonjour {nom}, votre medecin vous rappelle de suivre scrupuleusement votre ordonnance originale et d'eviter l'automedication."
         
-        patient.alerte_sms_envoyee = True
+        # NOTE : La variable text_sms est prête ici pour être transmise à ton API Twilio ou passerelle SMS locale.
+        # La sauvegarde de 'alerte_sms_envoyee' a été retirée pour éviter les conflits de champs manquants.
         patient.save()
 
     modeladmin.message_user(request, f"📱 Campagne SMS envoyée avec succès pour {queryset.count()} patient(s) !")
@@ -44,12 +46,21 @@ class PharmaciePartenaireAdmin(admin.ModelAdmin):
     list_editable = ('est_affiliee',)
     list_per_page = 20
 
-# --- 2. CONFIGURATION DES MODULES HISTORIQUES DU SYSTÈME ---
+# --- 2. CONFIGURATION DU RADAR DE VEILLE ET D'INFORMATION ---
+@admin.register(ArticleVeille)
+class ArticleVeilleAdmin(admin.ModelAdmin):
+    list_display = ('titre', 'source', 'date_publication', 'date_collecte')
+    list_filter = ('source', 'date_publication')
+    search_fields = ('titre', 'description')
+    readonly_fields = ('date_collecte',)
+    list_per_page = 30
+
+# --- 3. CONFIGURATION DES MODULES HISTORIQUES DU SYSTÈME ---
 
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
-    list_display = ('nom_complet', 'telephone', 'type_suivi', 'alerte_sms_envoyee')
-    list_filter = ('type_suivi', 'alerte_sms_envoyee')
+    list_display = ['nom_complet', 'telephone', 'type_suivi']
+    list_filter = ['type_suivi']                                                                        
     search_fields = ('nom_complet', 'telephone')
     actions = [envoyer_campagne_sms]
 
@@ -75,7 +86,7 @@ class MedicamentAdmin(admin.ModelAdmin):
     def affichage_stock_cartons(self, obj):
         """Calcule en temps réel le nombre exact de cartons et le reste à l'unité"""
         if obj.unites_par_carton and obj.unites_par_carton > 0:
-            cartons = obj.quantite_stock // obj.unites_par_carton
+            cartons = obj.quantite_stock // obj.unites_par_carton                                                
             unites_restantes = obj.quantite_stock % obj.unites_par_carton
             if unites_restantes > 0:
                 return f"📦 {cartons} carton(s) + {unites_restantes} u"
@@ -100,7 +111,7 @@ class MedicamentAdmin(admin.ModelAdmin):
             'fields': ('posologie_standard_ia', 'contre_indications'),
             'description': "Ces informations sont des guides générés. Seul le médecin valide la prescription finale."
         }),
-    )
+    )                                                                                                                                                       
 
 @admin.register(Vente)
 class VenteAdmin(admin.ModelAdmin):

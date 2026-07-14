@@ -31,6 +31,9 @@ urlpatterns = [
     
     # 📞 Webhook officiel pour intercepter et répondre aux Appels Vocaux
     path('voice/webhook/', views.twilio_voice_webhook, name='twilio_voice_webhook'),
+
+
+    path('radar/', views.radar_veille_view, name='radar_veille'),
 ]
 
 

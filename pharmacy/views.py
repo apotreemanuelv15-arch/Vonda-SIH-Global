@@ -9,14 +9,18 @@ from django.views.decorators.csrf import csrf_exempt
 from groq import Groq
 from twilio.rest import Client
 from twilio.twiml.messaging_response import MessagingResponse
-from .models import Medicament, Vente, Etablissement, PharmaciePartenaire
 
-# Initialisation optionnelle de Groq (S'appuie sur votre variable d'environnement existante)
+from .models import Medicament, Vente, Etablissement, PharmaciePartenaire, ArticleVeille
+from .utils import actualiser_radar
+
+# --- INITIALISATION DE GROQ CLOUD ---
 try:
     groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 except Exception:
     groq_client = None
 
+
+# --- 1. GESTION DE L'INVENTAIRE ET DES STOCKS CENTRALISÉS ---
 
 @login_required
 def inventaire(request):
@@ -101,7 +105,7 @@ def afficher_facture_gros(request, username=None, vente_id=None):
 def passer_vente_detail(request):
     """Gère la distribution au détail (à l'unité) pour les patients de l'hôpital"""
     medicaments = Medicament.objects.filter(quantite_stock__gt=0)
-
+    
     if request.method == "POST":
         medicament_id = request.POST.get("medicament")
         quantite_unites = int(request.POST.get("quantite_unites", 0))
@@ -142,7 +146,6 @@ def passer_vente_detail(request):
 @login_required
 def afficher_facture_detail(request, vente_id):
     """Génère le reçu au détail pour le dossier du patient"""
-    get_object_or_404(Vente, id=vente_id)
     vente = get_object_or_404(Vente, id=vente_id)
 
     # Calcul au détail : Unités vendues x Prix unitaire de base
@@ -153,6 +156,8 @@ def afficher_facture_detail(request, vente_id):
         "montant_total_unitaire": montant_total_unitaire
     })
 
+
+# --- 2. LOGISTIQUE TRANSFRONTALIÈRE ET CONVOIS ---
 
 @login_required
 def passer_transfert(request):
@@ -227,18 +232,42 @@ def rapport_flux(request):
     })
 
 
+# --- 3. RADAR DE VEILLE ET D'INFORMATION ---
+
+@login_required
+def radar_veille_view(request):
+    """
+    Affiche les articles captés par le radar. 
+    Permet aussi de forcer une mise à jour manuelle via un bouton.
+    """
+    if request.method == "POST" and "actualiser" in request.POST:
+        nouveaux_articles = actualiser_radar()
+        if nouveaux_articles > 0:
+            messages.success(request, f"📡 Radar mis à jour ! {nouveaux_articles} nouvelles dépêches fiables captées.")
+        else:
+            messages.info(request, "📡 Le radar est déjà à jour. Aucune nouvelle information détectée pour le moment.")
+        return redirect('radar_veille')
+
+    # Récupération des 30 derniers articles officiels stockés
+    articles = ArticleVeille.objects.all().order_by('-date_publication')[:30]
+    
+    return render(request, 'pharmacy/radar_veille.html', {
+        'articles': articles
+    })
+
+
+# --- 4. HOLOGRAMME IA & AUTOMATISATION DES RADARS SATELLITES (TWILIO / GROQ) ---
+
 @login_required
 def hologramme_ia_view(request):
     """Affiche l'interface de l'Hologramme et gère l'interaction par Chat Textuel Groq"""
-    reponse_texte = None
-
+    reponse_texte = None                                                                                                                         
     if request.method == "POST":
         message_patient = request.POST.get("message", "").strip()
         zone_patient = request.POST.get("zone", "Gombe").strip()
 
         if message_patient and groq_client:
             try:
-                # MODÈLE CORRIGÉ ET VALIDE SUR GROQ CLOUD
                 completion = groq_client.chat.completions.create(
                     model="llama-3.1-8b-instant",
                     messages=[
@@ -280,7 +309,7 @@ def hologramme_ia_view(request):
                                 texte_whatsapp = (
                                     f"🚨 *VONDA RADAR ALERTA* 🚨\n\n"
                                     f"Olá Gerência da {pharmacie.nom},\n"
-                                    f"Um paciente na sua zona ({zone_patient}) está à procura de: *{partie_medicament}*\n"
+                                    f"Um patiente na sua zona ({zone_patient}) está à procura de: *{partie_medicament}*\n"
                                     f"Sincronize o seu stock para garantir esta venda!"
                                 )
                             else:
@@ -321,7 +350,6 @@ def twilio_webhook(request):
 
         if message_patient and groq_client:
             try:
-                # MODÈLE CORRIGÉ ET VALIDE SUR GROQ CLOUD
                 completion = groq_client.chat.completions.create(
                     model="llama-3.1-8b-instant",
                     messages=[
@@ -330,8 +358,8 @@ def twilio_webhook(request):
                             "content": (
                                 "Tu es Vonda, l'intelligence artificielle du conglomérat SIH. "
                                 "Réponds de façon concise, professionnelle et chaleureuse. "
-                                "CONSIGNE DE TRADUCTION : Identifie précisément la langue ou le dialecte utilisé par l'utilisateur "
-                                "(Français, Anglais, Portugais, Swahili, Lingala, etc.) et réponds-lui systématiquement dans la même langue. "
+                                "CONSIGNE DE TRADUCTION : Identifie précisément la langue ou le dialecte utilisé par l'interlocuteur "
+                                "(Français, Anglais, Portugais, Swahili, Lingala, etc.) et réponds-lui systématiquement dans cette langue. "
                                 "Il est strictement interdit de répondre en français si l'utilisateur écrit en anglais ou portugais. "
                                 "Si l'utilisateur recherche un médicament, ajoute obligatoirement ceci à la toute fin : [RECHERCHE: nom_du_medicament]"
                             )
@@ -364,12 +392,14 @@ def twilio_webhook(request):
                                     f"🚨 *VONDA RADAR ALERTA* 🚨\n\n"
                                     f"Olá Gerência da {pharmacie.nom},\n"
                                     f"Um paciente na sua zona está à procura de: *{partie_medicament}*\n"
+                                    f"Sincronize o seu stock para garantir esta venda!"
                                 )
                             else:
                                 texte_whatsapp = (
                                     f"🚨 *VONDA RADAR ALERTE* 🚨\n\n"
                                     f"Direction {pharmacie.nom},\n"
-                                    f"Un patient recherche ce produit dans votre zone ({zone_patient}) : *{partie_medicament}*"
+                                    f"Un patient recherche ce produit dans votre zone ({zone_patient}) : *{partie_medicament}*\n"
+                                    f"Veuillez vérifier vos stocks sur votre interface !"
                                 )
 
                             client_twilio.messages.create(
@@ -413,6 +443,7 @@ def API_recherche_radar_ia(request):
         cartons = 0
         if med.unites_par_carton and med.unites_par_carton > 0:
             cartons = med.quantite_stock // med.unites_par_carton
+            
         if med.quantite_stock > 0:
             resultats_officines.append({
                 "pharmacie": med.etablissement.nom,

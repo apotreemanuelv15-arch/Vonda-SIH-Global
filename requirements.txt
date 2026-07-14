@@ -8,3 +8,4 @@ gunicorn
 requests
 psycopg2-binary
 google-genai
+feedparser
