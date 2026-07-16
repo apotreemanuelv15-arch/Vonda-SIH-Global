@@ -1,0 +1,23 @@
+<div class="container">
+    <h2>Tableau de Bord Administrateur - Vonda SIH</h2>
+    <a href="{% url 'export_veille_csv' %}" class="btn">Exporter Rapport CSV (Business)</a>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Titre</th>
+                <th>Zone</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for article in articles %}
+            <tr>
+                <td>{{ article.titre }}</td>
+                <td>{{ article.zone }}</td>
+                <td><button onclick="alert('Marqué comme traité')">Archiver</button></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

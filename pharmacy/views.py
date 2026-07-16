@@ -1,7 +1,9 @@
 import os
+import csv
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
@@ -402,7 +404,7 @@ def twilio_webhook(request):
                                     f"Veuillez vérifier vos stocks sur votre interface !"
                                 )
 
-                            client_twilio.messages.create(
+BB                            client_twilio.messages.create(
                                 body=texte_whatsapp,
                                 from_=twilio_number,
                                 to=f"whatsapp:+{pharmacie.telephone_whatsapp}"
@@ -509,3 +511,20 @@ def twilio_voice_webhook(request):
         '</Response>'
     )
     return HttpResponse(twiml_response, content_type='text/xml')
+
+@staff_member_required
+def admin_veille_view(request):
+    """Vue pour le tableau de bord administrateur"""
+    articles = ArticleVeille.objects.all().order_by('-date_collecte')
+    return render(request, 'pharmacy/admin_veille.html', {'articles': articles})
+
+@staff_member_required
+def export_veille_csv(request):
+    """Exportation des données de veille en CSV"""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="rapport_veille_vonda.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['Date', 'Titre', 'Zone', 'Urgence'])
+    for article in ArticleVeille.objects.all():
+        writer.writerow([article.date_collecte, article.titre, article.zone, article.type_urgence])
+    return response
