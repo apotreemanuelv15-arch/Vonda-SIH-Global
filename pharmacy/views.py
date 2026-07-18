@@ -404,7 +404,7 @@ def twilio_webhook(request):
                                     f"Veuillez vérifier vos stocks sur votre interface !"
                                 )
 
-BB                            client_twilio.messages.create(
+                            client_twilio.messages.create(
                                 body=texte_whatsapp,
                                 from_=twilio_number,
                                 to=f"whatsapp:+{pharmacie.telephone_whatsapp}"
