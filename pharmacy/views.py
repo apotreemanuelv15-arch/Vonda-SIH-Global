@@ -531,25 +531,29 @@ def export_veille_csv(request):
 
 @login_required
 def generer_note_strategique(request):
-    """
-    Analyse les dernières alertes Radar via Groq et génère une note de synthèse.
-    """
-    # 1. On récupère les 10 dernières alertes
+    """Analyse les dernières alertes Radar et génère une note de synthèse."""
+    # On récupère les 10 dernières alertes avec les nouveaux champs
     dernieres_alertes = ArticleVeille.objects.all().order_by('-date_collecte')[:10]
-    contexte = "\n".join([f"- {a.date_collecte}: {a.titre} (Zone: {a.zone}, Urgence: {a.type_urgence})" for a in dernieres_alertes])
+    
+    # Utilisation correcte des champs 'zone' et 'type_urgence'
+    contexte = "\n".join([
+        f"- {a.date_collecte}: {a.titre} (Zone: {a.zone}, Urgence: {a.type_urgence})" 
+        for a in dernieres_alertes
+    ])
 
     prompt = (
         f"Analyse ces alertes sanitaires récentes du conglomérat SIH :\n{contexte}\n\n"
         "Rédige une note de synthèse stratégique (format professionnel, ton rassurant mais expert) "
-        "comprenant : 1. Résumé de la situation, 2. Risques majeurs par zone, 3. Recommandations logistiques "
-        "pour optimiser les stocks des pharmacies affiliées."
+        "comprenant : 1. Résumé de la situation, 2. Risques majeurs par zone, 3. Recommandations logistiques."
     )
 
     try:
         completion = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=[{"role": "system", "content": "Tu es l'IA analytique senior du SIH."},
-                      {"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": "Tu es l'IA analytique senior du SIH."},
+                {"role": "user", "content": prompt}
+            ],
             temperature=0.3,
         )
         note_strategique = completion.choices[0].message.content

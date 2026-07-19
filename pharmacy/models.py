@@ -230,6 +230,10 @@ class ArticleVeille(models.Model):
     lien = models.URLField(unique=True)
     description = models.TextField(blank=True, null=True)
     source = models.CharField(max_length=100)
+    # Nouveaux champs ajoutés pour l'analyse IA
+    zone = models.CharField(max_length=100, default="Non spécifié", verbose_name="Zone géographique")
+    type_urgence = models.CharField(max_length=50, default="Normale", verbose_name="Niveau d'urgence")
+    
     date_publication = models.DateTimeField()
     date_collecte = models.DateTimeField(auto_now_add=True)
 
@@ -237,4 +241,4 @@ class ArticleVeille(models.Model):
         ordering = ['-date_publication']
 
     def __str__(self):
-        return f"[{self.source}] {self.titre}"
+        return f"[{self.source}] {self.titre} - {self.zone}"
